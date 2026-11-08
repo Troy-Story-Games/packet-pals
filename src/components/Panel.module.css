@@ -1,0 +1,23 @@
+.panel {
+  background: var(--surface);
+  border: 3px solid var(--ink);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  padding: 20px;
+}
+
+.purple {
+  background: var(--surface-2);
+}
+
+.yellow {
+  background: #fff4cc;
+}
+
+.green {
+  background: #e7f9ee;
+}
+
+.pink {
+  background: #ffe4ee;
+}

@@ -1,0 +1,47 @@
+.wrap {
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+}
+
+.bubble {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-bottom: 30px;
+  padding: 14px 16px 14px 20px;
+  background: var(--surface);
+  border: 3px solid var(--ink);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  font-size: 1.15rem;
+  max-width: 560px;
+}
+
+.bubble p {
+  margin: 0;
+  flex: 1;
+}
+
+.bubble::before {
+  content: '';
+  position: absolute;
+  left: -14px;
+  bottom: 18px;
+  border: 10px solid transparent;
+  border-right: 14px solid var(--ink);
+  border-left: 0;
+}
+
+.pip {
+  flex-shrink: 0;
+  overflow: visible;
+  filter: drop-shadow(0 6px 6px rgb(30 42 74 / 0.2));
+}
+
+.compact .bubble {
+  margin-bottom: 12px;
+  font-size: 1.05rem;
+  padding: 10px 12px 10px 16px;
+}

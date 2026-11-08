@@ -1,0 +1,52 @@
+.editor {
+  display: flex;
+  flex-direction: column;
+  height: calc(100dvh - 82px);
+  min-height: 480px;
+}
+
+.top {
+  display: flex;
+  align-items: flex-end;
+  gap: 16px;
+  padding: 6px 16px 10px;
+  border-bottom: 3px solid var(--ink);
+  background: var(--bg);
+}
+
+.pip {
+  flex: 1;
+  min-width: 0;
+}
+
+@media (max-width: 760px) {
+  .top {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+    padding: 4px 8px 8px;
+    font-size: 0.92rem;
+  }
+
+  .top svg[role='img'] {
+    width: 56px;
+    height: 48px;
+  }
+
+  .top p {
+    font-size: 0.95rem;
+  }
+}
+
+.main {
+  position: relative;
+  flex: 1;
+  display: flex;
+  min-height: 0;
+}
+
+.canvasWrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+}

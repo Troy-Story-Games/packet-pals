@@ -1,0 +1,74 @@
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  min-height: var(--tap);
+  padding: 10px 22px;
+  border: none;
+  border-radius: var(--radius-sm);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: 1.15rem;
+  color: #fff;
+  cursor: pointer;
+  touch-action: manipulation;
+  user-select: none;
+  box-shadow: 0 6px 0 var(--edge);
+}
+
+.button:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
+}
+
+.button:focus-visible {
+  outline: 4px solid var(--gold);
+  outline-offset: 3px;
+}
+
+.primary {
+  background: var(--primary);
+  --edge: var(--primary-dark);
+}
+
+.secondary {
+  background: #fff;
+  color: var(--primary);
+  --edge: #c7dbfb;
+  border: 3px solid #c7dbfb;
+}
+
+.good {
+  background: var(--good);
+  --edge: var(--good-dark);
+}
+
+.danger {
+  background: var(--bad);
+  --edge: #b91c1c;
+}
+
+.gold {
+  background: var(--gold);
+  color: #5a3d00;
+  --edge: #c98a00;
+}
+
+.ghost {
+  background: transparent;
+  color: var(--ink);
+  box-shadow: none;
+}
+
+.lg {
+  min-height: 72px;
+  padding: 14px 30px;
+  font-size: 1.4rem;
+  border-radius: var(--radius);
+}
+
+.icon {
+  width: var(--tap);
+  padding: 0;
+}

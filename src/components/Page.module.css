@@ -1,0 +1,16 @@
+.page {
+  width: min(1040px, 100%);
+  margin: 0 auto;
+  padding: 20px 16px 64px;
+}
+
+.wide {
+  width: min(1280px, 100%);
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  color: var(--primary);
+}

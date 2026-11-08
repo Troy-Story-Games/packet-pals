@@ -1,0 +1,102 @@
+import { useEffect, useMemo, useState } from 'react';
+import { navigate } from '@/app/router';
+import { KidButton } from '@/components/KidButton';
+import { Page } from '@/components/Page';
+import { Topology } from '@/core/sim';
+import { EditorView } from '@/features/editor/EditorView';
+import { useEditor } from '@/features/editor/editorStore';
+import { MISSIONS, missionById, missionStars } from '@/game/missions/catalogue';
+import { useProgress } from '@/game/progressStore';
+import { isMissionUnlocked } from '@/game/unlocks';
+import { playSound } from '@/services/audio/sfx';
+import { burstConfetti } from '@/services/effects/confetti';
+import { GoalCard } from './GoalCard';
+import { MissionComplete } from './MissionComplete';
+
+export function MissionScreen({ missionId }: { missionId: string }) {
+  const mission = missionById(missionId);
+  const index = MISSIONS.findIndex((m) => m.id === missionId);
+  const progress = useProgress((s) => s.missionStars);
+  const completeMission = useProgress((s) => s.completeMission);
+  const network = useEditor((s) => s.network);
+  const history = useEditor((s) => s.history);
+  const playback = useEditor((s) => s.playback);
+  const startedAt = useEditor((s) => s.loadedAt);
+  const [attempt, setAttempt] = useState(0);
+  const [hintsUsed, setHintsUsed] = useState(0);
+  const [result, setResult] = useState<{ stars: number; seconds: number } | null>(null);
+  const unlocked = index >= 0 && isMissionUnlocked(index, progress);
+
+  useEffect(() => {
+    if (!mission || !unlocked) return;
+    useEditor
+      .getState()
+      .load(mission.setup(), { tools: mission.tools, sandbox: false, intro: mission.story });
+  }, [mission, unlocked, attempt]);
+
+  const restart = () => {
+    setHintsUsed(0);
+    setResult(null);
+    setAttempt((a) => a + 1);
+  };
+
+  const topo = useMemo(() => new Topology(network), [network]);
+
+  // Check the goal whenever a packet animation finishes or the network changes.
+  useEffect(() => {
+    if (!mission || result || playback || history.length === 0) return;
+    if (!mission.check({ network, topo, history })) return;
+    const seconds = Math.round((performance.now() - startedAt) / 1000);
+    const stars = missionStars(mission, hintsUsed, useEditor.getState().failures, seconds);
+    const timer = window.setTimeout(() => {
+      setResult({ stars, seconds });
+      completeMission(mission.id, stars);
+      playSound('jingleWin');
+      burstConfetti();
+    }, 900);
+    return () => window.clearTimeout(timer);
+  }, [mission, network, topo, history, playback, result, hintsUsed, completeMission, startedAt]);
+
+  if (!mission || !unlocked) {
+    return (
+      <Page title={mission ? 'Mission locked' : 'Mission not found'}>
+        <p>Finish the missions before this one first!</p>
+        <KidButton onClick={() => navigate('missions')}>Back to missions</KidButton>
+      </Page>
+    );
+  }
+
+  const next = MISSIONS[index + 1];
+
+  return (
+    <>
+      <EditorView
+        fitKey={`${mission.id}-${attempt}`}
+        header={
+          <GoalCard
+            mission={mission}
+            number={index + 1}
+            hintsUsed={hintsUsed}
+            running={!result}
+            startedAt={startedAt}
+            onHint={() => {
+              const hint = mission.hints[Math.min(hintsUsed, mission.hints.length - 1)];
+              setHintsUsed((h) => h + 1);
+              playSound('pop');
+              useEditor.getState().say(hint, 'think');
+            }}
+            onRestart={restart}
+          />
+        }
+      />
+      <MissionComplete
+        open={result !== null}
+        mission={mission}
+        stars={result?.stars ?? 0}
+        seconds={result?.seconds ?? 0}
+        onReplay={restart}
+        onNext={next ? () => navigate(`missions/${next.id}`) : undefined}
+      />
+    </>
+  );
+}

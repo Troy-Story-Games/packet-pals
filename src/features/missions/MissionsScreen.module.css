@@ -1,0 +1,75 @@
+.trail {
+  list-style: none;
+  margin: 24px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 20px;
+}
+
+.card {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 190px;
+  padding: 26px 10px 16px;
+  border: 4px solid var(--ink);
+  border-radius: 26px;
+  background: var(--surface);
+  box-shadow: 0 7px 0 var(--ink);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.card strong {
+  font-family: var(--font-title);
+  font-weight: 600;
+  font-size: 1.2rem;
+  text-align: center;
+}
+
+.done {
+  background: #ecfdf5;
+}
+
+.locked {
+  cursor: not-allowed;
+  background: #e2e8f0;
+  color: var(--ink-soft);
+  box-shadow: 0 7px 0 #94a3b8;
+  border-color: #94a3b8;
+}
+
+.number {
+  position: absolute;
+  top: -16px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  border: 3px solid var(--ink);
+  background: var(--accent);
+  color: #fff;
+  font-weight: 700;
+}
+
+.locked .number {
+  background: #94a3b8;
+}
+
+.timed {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 1px 10px;
+  border-radius: 999px;
+  background: #fee2e2;
+  font-size: 0.85rem;
+  font-weight: 600;
+}

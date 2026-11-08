@@ -1,0 +1,32 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-electron/
+release/
+dev-dist/
+.vite/
+
+# Test output
+coverage/
+playwright-report/
+test-results/
+blob-report/
+
+# Logs & env
+*.log
+npm-debug.log*
+.env
+.env.*
+
+# Editors & OS
+.idea/
+.vscode/*
+!.vscode/extensions.json
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Local-only agent context (see AGENTS.md)
+AGENTS.md

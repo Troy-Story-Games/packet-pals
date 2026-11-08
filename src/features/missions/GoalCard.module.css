@@ -1,0 +1,86 @@
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: min(520px, 100%);
+  padding: 10px 14px;
+  border: 3px solid var(--ink);
+  border-radius: var(--radius);
+  background: #fff7ed;
+  box-shadow: var(--shadow);
+}
+
+.title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.15rem;
+}
+
+.title strong {
+  flex: 1;
+}
+
+.clock {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 10px;
+  border-radius: 999px;
+  background: var(--ink);
+  color: #fff;
+  font-family: ui-monospace, monospace;
+  font-weight: 700;
+  font-size: 1.1rem;
+}
+
+.hurry {
+  background: var(--bad);
+  animation: throb 0.6s ease-in-out infinite alternate;
+}
+
+@keyframes throb {
+  to {
+    transform: scale(1.1);
+  }
+}
+
+.goal {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.goal p {
+  flex: 1;
+  margin: 0;
+  font-weight: 600;
+}
+
+.buttons {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.buttons button {
+  min-height: 46px;
+  padding: 6px 14px;
+  font-size: 1rem;
+}
+
+@media (max-width: 760px) {
+  .card {
+    padding: 8px 10px;
+  }
+
+  .title {
+    font-size: 1rem;
+  }
+
+  .buttons button {
+    min-height: 40px;
+    padding: 4px 10px;
+    font-size: 0.9rem;
+  }
+}

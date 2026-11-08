@@ -1,0 +1,37 @@
+.hitArea {
+  fill: none;
+  stroke: transparent;
+  stroke-width: 36px;
+}
+
+.cableShadow {
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 11px;
+  stroke-linecap: round;
+}
+
+.cable {
+  stroke: #64748b !important;
+  stroke-width: 6px !important;
+  stroke-linecap: round;
+}
+
+.erasable {
+  stroke: var(--bad) !important;
+  stroke-dasharray: 10 8;
+}
+
+.wifi {
+  stroke: var(--wifi) !important;
+  stroke-width: 4px !important;
+  stroke-dasharray: 2 12;
+  stroke-linecap: round;
+  animation: radio 0.9s linear infinite;
+}
+
+@keyframes radio {
+  to {
+    stroke-dashoffset: -28;
+  }
+}

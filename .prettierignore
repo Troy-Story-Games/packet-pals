@@ -1,0 +1,6 @@
+dist
+dist-electron
+release
+coverage
+src/assets
+package-lock.json

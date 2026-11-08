@@ -1,0 +1,51 @@
+.toolbox {
+  display: flex;
+  gap: 10px;
+  padding: 10px 12px;
+  overflow-x: auto;
+  background: var(--surface);
+  border-top: 3px solid var(--ink);
+  scrollbar-width: thin;
+}
+
+.card {
+  position: relative;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  width: 96px;
+  padding: 8px 4px;
+  border: 3px solid var(--ink);
+  border-radius: 18px;
+  background: var(--surface-2);
+  cursor: pointer;
+  box-shadow: 0 4px 0 var(--ink);
+  touch-action: manipulation;
+}
+
+.card strong {
+  font-size: 0.85rem;
+  font-weight: 600;
+  line-height: 1.1;
+}
+
+.locked {
+  filter: grayscale(1);
+  opacity: 0.6;
+}
+
+.lock {
+  position: absolute;
+  top: -10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--ink-soft);
+  color: #fff;
+  font-size: 0.72rem;
+  white-space: nowrap;
+}

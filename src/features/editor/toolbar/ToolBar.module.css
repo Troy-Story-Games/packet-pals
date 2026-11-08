@@ -1,0 +1,48 @@
+.bar {
+  position: absolute;
+  top: 12px;
+  left: 12px;
+  z-index: 5;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.tool {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  width: 72px;
+  padding: 8px 4px;
+  border: 3px solid var(--ink);
+  border-radius: 18px;
+  background: var(--surface);
+  font-weight: 600;
+  font-size: 0.9rem;
+  cursor: pointer;
+  box-shadow: 0 4px 0 var(--ink);
+  touch-action: manipulation;
+}
+
+.active {
+  background: var(--accent);
+  color: #fff;
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 var(--ink);
+}
+
+@media (max-width: 760px) {
+  .bar {
+    top: 8px;
+    left: 50%;
+    transform: translateX(-50%);
+    flex-direction: row;
+  }
+
+  .tool {
+    width: 64px;
+    padding: 4px;
+    font-size: 0.8rem;
+  }
+}

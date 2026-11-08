@@ -1,0 +1,111 @@
+.top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 20px;
+}
+
+@media (max-width: 760px) {
+  .top {
+    grid-template-columns: 1fr;
+  }
+}
+
+.levelCard {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+.bigLevel {
+  display: grid;
+  place-items: center;
+  flex-shrink: 0;
+  width: 110px;
+  height: 110px;
+  border-radius: 50%;
+  border: 5px solid #c98a00;
+  background: radial-gradient(circle at 35% 30%, #fff3b0, var(--gold));
+  font-family: var(--font-title);
+  font-size: 3.4rem;
+  box-shadow: 0 6px 0 #c98a00;
+}
+
+.stats ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.stats li {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 0;
+  border-bottom: 2px dashed #ece6ff;
+}
+
+.stats li strong {
+  margin-left: auto;
+  font-size: 1.2rem;
+}
+
+.heading {
+  margin-top: 28px;
+}
+
+.badges {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+  gap: 14px;
+}
+
+.badge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  padding: 16px 10px;
+  border: 3px dashed #cfc7e6;
+  border-radius: var(--radius);
+  background: #f4f1fb;
+  text-align: center;
+  color: var(--ink-soft);
+}
+
+.badge .medal {
+  display: grid;
+  place-items: center;
+  width: 84px;
+  height: 84px;
+  border-radius: 50%;
+  background: #e5e0f5;
+  filter: grayscale(1) opacity(0.45);
+}
+
+.earned {
+  border: 3px solid var(--ink);
+  background: var(--surface);
+  color: var(--ink);
+  box-shadow: var(--shadow);
+}
+
+.earned .medal {
+  filter: none;
+  background: radial-gradient(circle, #fff7d1 0%, var(--gold) 100%);
+  border: 3px solid #c98a00;
+}
+
+.save {
+  margin-top: 28px;
+}
+
+.saveActions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.error {
+  color: var(--bad);
+  font-weight: 600;
+}

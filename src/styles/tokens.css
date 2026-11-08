@@ -1,0 +1,36 @@
+:root {
+  --font-title: 'Fredoka', system-ui, sans-serif;
+  --font-body: 'Fredoka', system-ui, sans-serif;
+
+  --bg: #eaf4ff;
+  --bg-pattern: #d6e8fb;
+  --surface: #ffffff;
+  --surface-2: #eef4ff;
+  --ink: #1e2a4a;
+  --ink-soft: #5b6b8c;
+  --primary: #2563eb;
+  --primary-dark: #1d4ed8;
+  --accent: #f97316;
+  --good: #22c55e;
+  --good-dark: #15803d;
+  --bad: #ef4444;
+  --warn: #f59e0b;
+  --gold: #ffc533;
+
+  /* Packet colours, one per action, shared by the critters and the run buttons. */
+  --packet-ping: #facc15;
+  --packet-message: #38bdf8;
+  --packet-video: #ef4444;
+  --packet-game: #a855f7;
+  --packet-web: #22c55e;
+  --packet-print: #f97316;
+
+  --cable: #334155;
+  --wifi: #0ea5e9;
+
+  --radius: 22px;
+  --radius-sm: 14px;
+  --shadow: 0 6px 0 rgb(30 42 74 / 0.18);
+  --shadow-lg: 0 10px 30px rgb(30 42 74 / 0.18);
+  --tap: 56px;
+}
