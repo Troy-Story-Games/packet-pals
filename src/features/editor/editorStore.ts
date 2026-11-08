@@ -13,6 +13,7 @@ import {
   type Network,
 } from '@/core/sim';
 import type { HistoryEntry } from '@/game/missions/types';
+import { useCelebrations } from '@/game/celebrations';
 import { useProgress } from '@/game/progressStore';
 import { playSound } from '@/services/audio/sfx';
 import { rewardCable, rewardDevice, rewardJourney, rewardWifiJoin } from './rewards';
@@ -68,12 +69,29 @@ interface EditorState {
 
 let token = 0;
 
+/**
+ * After a packet lands, keep reward pop-ups back a little longer so the kid sees
+ * the result, and so a finished mission can show its card first.
+ */
+const AFTER_PACKET_HOLD_MS = 1500;
+let releasePopups: (() => void) | null = null;
+let pendingReward: (() => void) | null = null;
+
+function releasePopupsLater(): void {
+  const release = releasePopups;
+  releasePopups = null;
+  if (release) window.setTimeout(release, AFTER_PACKET_HOLD_MS);
+}
+
 export const useEditor = create<EditorState>()((set, get) => {
   const topology = () => new Topology(get().network);
 
   const setNetwork = (network: Network) => set({ network });
 
-  const finish = (journey: Journey) => {
+  const finish = (journey: Journey, reward: () => void) => {
+    // Rewards arrive with the packet, not when it leaves.
+    reward();
+    releasePopupsLater();
     set({
       playback: null,
       reaction: { deviceId: journey.at, outcome: journey.outcome, action: journey.action, token: ++token },
@@ -105,6 +123,9 @@ export const useEditor = create<EditorState>()((set, get) => {
     loadedAt: 0,
 
     load: (network, { tools, sandbox, intro }) => {
+      releasePopups?.();
+      releasePopups = null;
+      pendingReward = null;
       useProgress.getState().discover(network.devices.map((d) => d.kind));
       set({
         network,
@@ -255,9 +276,12 @@ export const useEditor = create<EditorState>()((set, get) => {
         history: [...s.history, { journey, kindsOnPath }],
         failures: s.failures + (journey.outcome === 'failed' ? 1 : 0),
       }));
-      rewardJourney(journey, kindsOnPath, hubShout);
+      const reward = () => rewardJourney(journey, kindsOnPath, hubShout);
+      pendingReward = reward;
 
-      if (journey.steps.length === 0) return finish(journey);
+      if (journey.steps.length === 0) return finish(journey, reward);
+      // Badges and level-ups wait until the packet has finished its trip.
+      releasePopups = useCelebrations.getState().hold();
       playSound('send');
       set({ playback: { journey, phase: 'forward', step: 0, token: ++token }, reaction: null });
       get().say(journey.steps[0].note ?? 'Off I go!', 'excited');
@@ -282,7 +306,8 @@ export const useEditor = create<EditorState>()((set, get) => {
         get().say('Got it! Now the answer comes back...', 'excited');
         return;
       }
-      finish(journey);
+      finish(journey, pendingReward ?? (() => {}));
+      pendingReward = null;
     },
   };
 });

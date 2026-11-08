@@ -4,6 +4,7 @@ import { KidButton } from '@/components/KidButton';
 import { Modal } from '@/components/Modal';
 import { Mascot } from '@/components/pip/Mascot';
 import { Stars } from '@/components/Stars';
+import { useCelebrationHold } from '@/game/celebrations';
 import type { Mission } from '@/game/missions/types';
 
 interface MissionCompleteProps {
@@ -17,6 +18,8 @@ interface MissionCompleteProps {
 
 /** The "you did it!" card with stars and what the kid just learned. */
 export function MissionComplete({ open, mission, stars, seconds, onReplay, onNext }: MissionCompleteProps) {
+  // Level-ups and badges from finishing the mission show after this card is closed.
+  useCelebrationHold(open);
   return (
     <Modal open={open} label="Mission complete">
       <h2 style={{ color: 'var(--primary)', fontSize: '2.2rem' }}>Mission complete!</h2>

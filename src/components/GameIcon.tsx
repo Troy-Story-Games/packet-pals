@@ -5,15 +5,7 @@ const byName = new Map(
 );
 
 export type GameIconName =
-  | 'audioOff'
-  | 'audioOn'
-  | 'cross'
-  | 'home'
-  | 'locked'
-  | 'musicOff'
-  | 'musicOn'
-  | 'star'
-  | 'trashcan';
+  'audioOff' | 'audioOn' | 'cross' | 'home' | 'locked' | 'musicOff' | 'musicOn' | 'star' | 'trashcan';
 
 interface GameIconProps {
   name: GameIconName;

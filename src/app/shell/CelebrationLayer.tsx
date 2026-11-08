@@ -15,9 +15,11 @@ import styles from './CelebrationLayer.module.css';
 export function CelebrationLayer() {
   const queue = useCelebrations((s) => s.queue);
   const dismiss = useCelebrations((s) => s.dismiss);
+  const held = useCelebrations((s) => s.holds > 0);
 
+  // XP toasts are small and always show; big pop-ups wait their turn, one at a time.
   const toasts = queue.filter((c) => c.kind === 'xp');
-  const popup = queue.find((c) => c.kind !== 'xp');
+  const popup = held ? undefined : queue.find((c) => c.kind !== 'xp');
 
   useEffect(() => {
     if (!popup) return;

@@ -35,7 +35,16 @@ test('mission 1 can be completed by cabling and messaging', async ({ page }) => 
   await page.getByRole('button', { name: 'Message', exact: true }).click();
   await page.getByRole('button', { name: "Ben's PC" }).click();
 
+  // Rewards must not cover the packet while it travels...
+  const reward = page.getByRole('dialog', { name: 'Reward' });
+  await page.waitForTimeout(400);
+  await expect(reward).toBeHidden();
+
+  // ...or the mission-complete card; they wait until it's closed.
   await expect(page.getByRole('heading', { name: 'Mission complete!' })).toBeVisible({ timeout: 10_000 });
+  await expect(reward).toBeHidden();
+  await page.getByRole('button', { name: 'Play again' }).click();
+  await expect(reward).toBeVisible();
 });
 
 test('sandbox adds devices from the toolbox', async ({ page }) => {
