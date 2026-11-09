@@ -15,7 +15,7 @@ export function Modal({ open, onClose, children, label }: ModalProps) {
     <AnimatePresence>
       {open && (
         <motion.div
-          className={styles.backdrop}
+          className={`${styles.backdrop} no-print`}
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}

@@ -104,7 +104,9 @@ img {
   body {
     background: none;
   }
-  .no-print {
+  /* Pop-ups, toasts and confetti (a canvas added to <body>) never belong on paper. */
+  .no-print,
+  body > canvas {
     display: none !important;
   }
 }
