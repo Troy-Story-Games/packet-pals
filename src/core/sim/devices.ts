@@ -261,6 +261,11 @@ export const APP_LABELS: Record<AppKind, string> = {
   print: 'Printing',
 };
 
+/** The website name a server answers to (its own, or the default for its kind). */
+export function serverName(d: { kind: DeviceKind; domain?: string }): string | undefined {
+  return d.domain ?? DOMAINS[d.kind];
+}
+
 /**
  * "Door numbers" (ports) each app knocks on. Pings don't really use a door, but
  * calling it the knock door keeps the idea simple for kids.

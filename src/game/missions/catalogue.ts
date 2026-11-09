@@ -498,7 +498,7 @@ const CHAPTER_2: Mission[] = [
           name: 'Laptop',
           wifi: { ssid: 'Treehouse', password: 'pizza123' },
         })
-        .add('webServer', 'mysite', 640, 520, { name: 'My Website' })
+        .add('webServer', 'mysite', 640, 520, { name: 'My Website', domain: 'my-website.fun' })
         .add('dnsServer', 'homedns', 640, 320, { name: 'Home DNS' })
         .add('internet', 'internet', 860, 60)
         .add('webServer', 'web', 1120, -20)
@@ -511,8 +511,12 @@ const CHAPTER_2: Mission[] = [
     check: ({ history }) =>
       delivered(
         history,
-        (j) => j.from === 'laptop' && j.action === 'web' && j.to === 'mysite' && Boolean(j.name),
+        (j) => j.from === 'laptop' && j.action === 'web' && j.to === 'mysite' && j.name === 'mysite.home',
       ),
+    nudge: ({ journey }) =>
+      journey.outcome === 'delivered' && journey.to === 'mysite' && journey.name !== 'mysite.home'
+        ? 'You found your website by its own name! Now give it the easy name mysite.home in Home DNS, and open that.'
+        : undefined,
     lesson:
       "Your home DNS server knows your own names, and asks the Internet's phone book for everything else.",
   },

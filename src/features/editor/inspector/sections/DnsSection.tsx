@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Emoji } from '@/components/Emoji';
 import { KidButton } from '@/components/KidButton';
-import { DEVICE_SPECS, DOMAINS, normaliseName, type Device } from '@/core/sim';
+import { DEVICE_SPECS, normaliseName, serverName, type Device } from '@/core/sim';
 import { useEditor } from '../../editorStore';
 import { AdvancedSection } from '../AdvancedSection';
 import styles from '../Inspector.module.css';
@@ -20,7 +20,7 @@ export function DnsSection({ device }: { device: Device }) {
   const clean = normaliseName(name);
   const valid = NAME_PATTERN.test(clean) && !entries.some((e) => normaliseName(e.name) === clean);
   const nameOf = (id: string) => devices.find((d) => d.id === id)?.name ?? '?';
-  const builtIn = devices.filter((d) => DOMAINS[d.kind]).map((d) => DOMAINS[d.kind]!);
+  const builtIn = devices.map((d) => serverName(d)).filter((n): n is string => Boolean(n));
 
   return (
     <>

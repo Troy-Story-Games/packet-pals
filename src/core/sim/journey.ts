@@ -1,4 +1,12 @@
-import { APP_FOR_ACTION, APP_LABELS, DEVICE_SPECS, DOMAINS, DOORS, SERVER_FOR_ACTION } from './devices';
+import {
+  APP_FOR_ACTION,
+  APP_LABELS,
+  DEVICE_SPECS,
+  DOMAINS,
+  DOORS,
+  SERVER_FOR_ACTION,
+  serverName,
+} from './devices';
 import { resolveName } from './dns';
 import { sameSubnet, type Topology } from './topology';
 import type { Action, AppKind, Device, Journey, JourneyStep, Move } from './types';
@@ -84,7 +92,11 @@ export function sendPacket(topo: Topology, fromId: string, action: Action, to?: 
     }
   } else {
     const serverKind = SERVER_FOR_ACTION[action];
-    name = to ?? (serverKind ? DOMAINS[serverKind] : undefined);
+    // No name given: use the first server of the right kind (e.g. videos.fun).
+    const usual = serverKind
+      ? topo.network.devices.find((d) => d.kind === serverKind && d.powered)
+      : undefined;
+    name = to ?? (usual ? serverName(usual) : serverKind ? DOMAINS[serverKind] : undefined);
     if (!name) return fail(src, 'Pick who to send it to!');
     const lookup = resolveName(topo, src.id, name);
 
@@ -305,11 +317,13 @@ function noGatewayReason(topo: Topology, d: Device): string {
 
 /** Simple steps along a path, used for lookups and to show how far a failed packet got. */
 function stepsAlong(topo: Topology, path: string[], packet?: 'lookup', note?: string): JourneyStep[] {
-  return path.slice(0, -1).map((from, i) => ({
-    moves: [move(topo, from, path[i + 1], i === path.length - 2 && packet ? 'arrive' : 'forward')],
-    packet,
-    note: i === 0 ? note : undefined,
-  }));
+  return path.slice(0, -1).map((from, i) => {
+    const moves = [move(topo, from, path[i + 1], i === path.length - 2 && packet ? 'arrive' : 'forward')];
+    // Hubs shout every packet to everyone, even ones that later get stopped or are only lookups.
+    if (i > 0 && topo.device(from).kind === 'hub')
+      moves.push(...hubCopies(topo, from, path[i - 1], path[i + 1]));
+    return { moves, packet, note: i === 0 ? note : undefined };
+  });
 }
 
 function move(topo: Topology, from: string, to: string, fate: Move['fate']): Move {

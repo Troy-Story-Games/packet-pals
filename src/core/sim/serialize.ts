@@ -15,6 +15,8 @@ interface SavedDevice {
   f?: [AppKind[], string[]];
   /** Firewall doors: [app, device id]. */
   fd?: Array<[AppKind, string]>;
+  /** Server website name. */
+  dn?: string;
   /** Phone on mobile data. */
   c?: 1;
   /** DNS custom names: [name, device id]. */
@@ -60,6 +62,7 @@ export function exportNetwork(network: Network): SavedNetwork {
       if (d.firewall?.doors?.length)
         saved.fd = d.firewall.doors.map((door) => [door.app, ids.get(door.deviceId) ?? door.deviceId]);
       if (d.network === 'cell') saved.c = 1;
+      if (d.domain) saved.dn = d.domain;
       if (d.dns?.entries.length)
         saved.ns = d.dns.entries.map((e) => [e.name, ids.get(e.deviceId) ?? e.deviceId]);
       return saved;
@@ -105,6 +108,7 @@ export function importNetwork(data: unknown): Network | null {
       };
     }
     if (s.c === 1) d.network = 'cell';
+    if (s.dn) d.domain = String(s.dn).slice(0, 40);
     if (s.k === 'dnsServer')
       d.dns = { entries: (s.ns ?? []).map(([name, deviceId]) => ({ name: String(name), deviceId })) };
     return d;

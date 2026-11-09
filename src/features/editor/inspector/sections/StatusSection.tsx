@@ -1,5 +1,6 @@
 import { Emoji } from '@/components/Emoji';
 import { DOMAINS, type Device, type Topology } from '@/core/sim';
+import { useEditor } from '../../editorStore';
 import styles from '../Inspector.module.css';
 
 const SOURCE_TEXT = {
@@ -60,11 +61,35 @@ export function StatusSection({ device, topo }: { device: Device; topo: Topology
       {device.kind === 'cellTower' && (
         <p className={styles.hint}>Gives phones on Mobile data a signal from far away.</p>
       )}
-      {domain && (
-        <p>
-          Website name: <span className={styles.mono}>{domain}</span>
-        </p>
-      )}
+      {domain && <ServerName device={device} topo={topo} />}
     </section>
+  );
+}
+
+const NAME_PATTERN = /^[a-z0-9-]+(\.[a-z0-9-]+)+$/;
+
+/** A server's website name, which kids can change (e.g. to have two video sites). */
+function ServerName({ device, topo }: { device: Device; topo: Topology }) {
+  const updateDevice = useEditor((s) => s.updateDevice);
+  const name = device.domain ?? DOMAINS[device.kind] ?? '';
+  const clean = name.trim().toLowerCase();
+  const valid = NAME_PATTERN.test(clean);
+  const clash = topo.network.devices.some(
+    (d) => d.id !== device.id && (d.domain ?? DOMAINS[d.kind])?.toLowerCase() === clean,
+  );
+  return (
+    <label className={styles.field}>
+      Website name
+      <input
+        type="text"
+        value={name}
+        maxLength={40}
+        autoCapitalize="off"
+        aria-label="Website name"
+        onChange={(e) => updateDevice(device.id, { domain: e.target.value.toLowerCase().replace(/\s/g, '') })}
+      />
+      {!valid && <span className={styles.warn}>Names look like word.word, e.g. dinos.fun</span>}
+      {valid && clash && <span className={styles.warn}>Another server already has this name!</span>}
+    </label>
   );
 }

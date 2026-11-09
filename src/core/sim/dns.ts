@@ -1,4 +1,4 @@
-import { DOMAINS } from './devices';
+import { serverName } from './devices';
 import type { Topology } from './topology';
 import type { Device } from './types';
 
@@ -15,14 +15,27 @@ export function normaliseName(name: string): string {
   return name.trim().toLowerCase();
 }
 
-/** Names every Internet server answers to, e.g. videos.fun → the video server. */
-function builtInNames(topo: Topology): Map<string, string> {
+/** Website names of the given servers, e.g. videos.fun → the video server. */
+function namesOf(servers: Device[]): Map<string, string> {
   const names = new Map<string, string>();
-  for (const d of topo.network.devices) {
-    const domain = DOMAINS[d.kind];
+  for (const d of servers) {
+    const domain = serverName(d)?.toLowerCase();
     if (domain && d.powered && !names.has(domain)) names.set(domain, d.id);
   }
   return names;
+}
+
+/**
+ * The Internet's phone book only lists servers that are on the Internet. Servers
+ * at home are private: only a DNS server in the same home knows their names.
+ */
+function builtInNames(topo: Topology): Map<string, string> {
+  return namesOf(topo.network.devices.filter((d) => topo.address(d.id).source === 'public'));
+}
+
+/** Website names of servers on the same home network as a home DNS server. */
+function homeServerNames(topo: Topology, dns: Device): Map<string, string> {
+  return namesOf(topo.localReach(dns.id).map((id) => topo.device(id)));
 }
 
 function customName(dns: Device, name: string): string | undefined {
@@ -63,7 +76,7 @@ export function resolveName(topo: Topology, srcId: string, rawName: string): Nam
 
   const home = homeDnsServer(topo, srcId);
   if (home) {
-    const own = customName(home, name);
+    const own = customName(home, name) ?? homeServerNames(topo, home).get(name);
     return { dnsId: home.id, deviceId: own ?? internetAnswer(), forwarded: own === undefined };
   }
   if (internetDns) return { dnsId: internetDns.id, deviceId: internetAnswer(), forwarded: false };
@@ -74,8 +87,10 @@ export function resolveName(topo: Topology, srcId: string, rawName: string): Nam
 export function knownNames(topo: Topology, srcId: string): string[] {
   const names = new Set(builtInNames(topo).keys());
   const internetDns = internetDnsServer(topo);
-  for (const dns of [internetDns, homeDnsServer(topo, srcId)]) {
+  const home = homeDnsServer(topo, srcId);
+  for (const dns of [internetDns, home]) {
     for (const e of dns?.dns?.entries ?? []) names.add(normaliseName(e.name));
   }
+  if (home) for (const n of homeServerNames(topo, home).keys()) names.add(n);
   return [...names].sort();
 }

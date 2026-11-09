@@ -1,4 +1,4 @@
-import { DEVICE_SPECS } from './devices';
+import { DEVICE_SPECS, DOMAINS, serverName } from './devices';
 import type { Device, DeviceKind, Network } from './types';
 
 function newId(prefix: string): string {
@@ -21,7 +21,20 @@ export function createDevice(kind: DeviceKind, x: number, y: number, devices: De
   if (kind === 'firewall') device.firewall = { blockedApps: [], blockedDevices: [], doors: [] };
   if (kind === 'dnsServer') device.dns = { entries: [] };
   if (kind === 'phone') device.network = 'wifi';
+  const domain = DOMAINS[kind];
+  if (domain) device.domain = uniqueDomain(domain, devices);
   return device;
+}
+
+/** "videos.fun", then "videos2.fun", "videos3.fun"... so every server has its own name. */
+function uniqueDomain(base: string, devices: Device[]): string {
+  const taken = new Set(devices.map((d) => serverName(d)).filter(Boolean));
+  if (!taken.has(base)) return base;
+  const [stem, ...rest] = base.split('.');
+  for (let i = 2; ; i++) {
+    const candidate = [`${stem}${i}`, ...rest].join('.');
+    if (!taken.has(candidate)) return candidate;
+  }
 }
 
 export type ConnectResult = { ok: true; network: Network } | { ok: false; reason: string };

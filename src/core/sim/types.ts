@@ -69,6 +69,8 @@ export interface Device {
   firewall?: FirewallConfig;
   /** Phones: use WiFi or the mobile (cell) network. */
   network?: 'wifi' | 'cell';
+  /** Video, game and web servers: the website name they answer to. */
+  domain?: string;
   /** DNS servers: custom names they know. */
   dns?: { entries: DnsEntry[] };
   /** Mission-placed devices can't be deleted. */

@@ -207,3 +207,54 @@ describe('saving new things', () => {
 });
 
 void NetBuilder;
+
+describe('hubs and server names', () => {
+  const ignoredTo = (j: Journey) =>
+    j.steps.flatMap((s) => s.moves.filter((m) => m.fate === 'ignored').map((m) => m.to));
+
+  /** Home A's PC sits behind a hub with a neighbour on it. */
+  const hubHome = () => twoHomes().add('hub', 'Hub').add('computer', 'Neighbour').add('computer', 'HubPC');
+  const wired = () => {
+    const net = hubHome();
+    net.network = {
+      ...net.network,
+      links: net.network.links.filter((l) => !(l.a === 'PC' && l.b === 'Router')),
+    };
+    return net.link('HubPC', 'Hub').link('Neighbour', 'Hub').link('Hub', 'Router');
+  };
+
+  it('hubs shout even when the packet is stopped later', () => {
+    const j = sendPacket(new Topology(wired().network), 'HubPC', 'message', 'PCB');
+    expect(j.outcome).toBe('failed');
+    expect(ignoredTo(j)).toContain('Neighbour');
+  });
+
+  it('hubs shout the DNS question too', () => {
+    const net = wired().add('dnsServer', 'DNS').link('DNS', 'Internet');
+    const j = sendPacket(new Topology(net.network), 'HubPC', 'web');
+    const lookupCopies = j.steps
+      .filter((s) => s.packet === 'lookup')
+      .flatMap((s) => s.moves.filter((m) => m.fate === 'ignored'));
+    expect(lookupCopies.length).toBeGreaterThan(0);
+  });
+
+  it('gives each new server its own name and lets kids rename them', () => {
+    const net = homeNetwork().add('videoServer', 'Videos2').link('Videos2', 'Internet');
+    expect(net.network.devices.find((d) => d.id === 'Videos2')!.domain).toBe('videos2.fun');
+    const renamed = net.set('Videos2', { domain: 'dinos.fun' });
+    const j = sendPacket(new Topology(renamed.network), 'PC', 'video', 'dinos.fun');
+    expect(j.outcome).toBe('delivered');
+    expect(j.to).toBe('Videos2');
+  });
+
+  it("keeps home servers' names private to the home's own DNS server", () => {
+    const base = homeNetwork()
+      .add('webServer', 'HomeSite', { domain: 'castle.home' })
+      .link('HomeSite', 'Router');
+    expect(sendPacket(new Topology(base.network), 'PC', 'web', 'castle.home').message).toMatch(
+      /No one knows/,
+    );
+    const withDns = base.add('dnsServer', 'HomeDNS').link('HomeDNS', 'Router');
+    expect(sendPacket(new Topology(withDns.network), 'PC', 'web', 'castle.home').outcome).toBe('delivered');
+  });
+});

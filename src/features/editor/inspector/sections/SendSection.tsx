@@ -9,6 +9,7 @@ import {
   knownNames,
   resolveName,
   SERVER_FOR_ACTION,
+  serverName,
   type Action,
   type Device,
   type Topology,
@@ -33,11 +34,19 @@ export function SendSection({ device, topo }: { device: Device; topo: Topology }
         .filter((d) => d.id !== device.id && pred(d))
         .map((d) => ({ to: d.id, label: d.name, device: d }));
     const serverKind = SERVER_FOR_ACTION[action];
-    const builtIns = Object.values(DOMAINS) as string[];
+    const serverNames = topo.network.devices
+      .map((d) => serverName(d)?.toLowerCase())
+      .filter((n): n is string => Boolean(n));
     const names = (): Array<{ to: string; label: string }> => {
-      const custom = knownNames(topo, device.id).filter((n) => !builtIns.includes(n));
-      const own = serverKind ? [DOMAINS[serverKind]!] : [];
-      return [...own, ...(action === 'web' ? custom : [])].map((n) => ({ to: n, label: n }));
+      // Every server of the right kind, by its website name (there can be several).
+      const own = topo.network.devices
+        .filter((d) => d.kind === serverKind)
+        .map((d) => serverName(d)!.toLowerCase());
+      const custom = knownNames(topo, device.id).filter((n) => !serverNames.includes(n));
+      const list = [...new Set([...own, ...(action === 'web' ? custom : [])])];
+      // No server yet: still offer the usual name so the kid finds out one is missing.
+      if (list.length === 0 && serverKind) list.push(DOMAINS[serverKind]!);
+      return list.map((n) => ({ to: n, label: n }));
     };
     switch (action) {
       case 'print':
