@@ -457,6 +457,15 @@ const CHAPTER_2: Mission[] = [
         .link('wall', 'internet')
         .link('videos', 'internet')
         .build(),
+    nudge: (latest, history) => {
+      if (!latest.command && latest.journey.from === 'pc') {
+        return "That's the right idea! But a network detective uses the Terminal. Tap the Terminal button and try it there.";
+      }
+      if (latest.command === 'ping' && !history.some((e) => e.command === 'traceroute')) {
+        return 'Good ping! Now run traceroute too, to follow the trail.';
+      }
+      return undefined;
+    },
     check: ({ history }) =>
       history.some((e) => e.command === 'traceroute') &&
       history.some(
@@ -523,6 +532,10 @@ const CHAPTER_2: Mission[] = [
     ],
     tools: [],
     setup: () => twoHouses(['computer', 'pc', 'Your PC'], ['laptop', 'friend', "Friend's Laptop"]).build(),
+    nudge: ({ journey }) =>
+      journey.from === 'pc' && journey.to === 'friend'
+        ? "Other way round! Your friend sends the message: tap Friend's Laptop and send it to Your PC."
+        : undefined,
     check: ({ history }) =>
       delivered(history, (j) => j.from === 'friend' && j.to === 'pc' && j.action === 'message'),
     lesson:
@@ -548,6 +561,10 @@ const CHAPTER_2: Mission[] = [
         ['console', 'myconsole', 'Your Console'],
         ['console', 'friendconsole', "Friend's Console"],
       ).build(),
+    nudge: ({ journey }) =>
+      journey.from === 'myconsole' && journey.to === 'friendconsole'
+        ? "Close! But YOU are the host. Your friend's console should join Your Console."
+        : undefined,
     check: ({ history }) =>
       delivered(history, (j) => j.from === 'friendconsole' && j.to === 'myconsole' && j.action === 'game'),
     lesson: 'When you host a game, friends knock on door 3074. Only open doors for games you trust!',

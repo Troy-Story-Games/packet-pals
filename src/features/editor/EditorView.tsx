@@ -39,7 +39,8 @@ export function EditorView({ header, fitKey }: EditorViewProps) {
           </div>
           <Inspector />
         </div>
-        <Toolbox />
+        {/* The terminal needs the room; the toolbox comes back when it closes. */}
+        {!terminalOpen && <Toolbox />}
       </div>
       <PrintoutPopup />
     </ReactFlowProvider>

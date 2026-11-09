@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { navigate } from '@/app/router';
 import { KidButton } from '@/components/KidButton';
 import { Page } from '@/components/Page';
@@ -25,6 +25,7 @@ export function MissionScreen({ missionId }: { missionId: string }) {
   const startedAt = useEditor((s) => s.loadedAt);
   // Let the kid enjoy the printout before the mission card appears.
   const printing = useEditor((s) => s.printout !== null);
+  const nudgedAt = useRef(0);
   const [attempt, setAttempt] = useState(0);
   const [hintsUsed, setHintsUsed] = useState(0);
   const [result, setResult] = useState<{ stars: number; seconds: number } | null>(null);
@@ -53,7 +54,16 @@ export function MissionScreen({ missionId }: { missionId: string }) {
   // Check the goal whenever a packet animation finishes or the network changes.
   useEffect(() => {
     if (!mission || result || playback || printing || history.length === 0) return;
-    if (!mission.check({ network, topo, history })) return;
+    if (!mission.check({ network, topo, history })) {
+      // Not done yet: if the last try was close, give a friendly nudge after the result is read.
+      // Nudge once per try, not again every time the network changes.
+      if (nudgedAt.current === history.length) return;
+      const tip = mission.nudge?.(history[history.length - 1], history);
+      if (!tip) return;
+      nudgedAt.current = history.length;
+      const timer = window.setTimeout(() => useEditor.getState().say(tip, 'think'), 2500);
+      return () => window.clearTimeout(timer);
+    }
     const seconds = Math.round((performance.now() - startedAt) / 1000);
     const stars = missionStars(mission, hintsUsed, useEditor.getState().failures, seconds);
     const timer = window.setTimeout(() => {

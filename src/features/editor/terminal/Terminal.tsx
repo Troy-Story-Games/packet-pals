@@ -1,7 +1,15 @@
 import { motion } from 'motion/react';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Emoji } from '@/components/Emoji';
-import { COMMANDS, DEVICE_SPECS, knownNames, Topology, type Command } from '@/core/sim';
+import {
+  COMMANDS,
+  DEVICE_SPECS,
+  isServer,
+  knownNames,
+  resolveName,
+  Topology,
+  type Command,
+} from '@/core/sim';
 import { playSound } from '@/services/audio/sfx';
 import { useEditor } from '../editorStore';
 import styles from './Terminal.module.css';
@@ -20,17 +28,25 @@ export function Terminal() {
   const logRef = useRef<HTMLDivElement>(null);
 
   const hosts = useMemo(() => network.devices.filter((d) => DEVICE_SPECS[d.kind].isHost), [network.devices]);
+  // Commands are typed on everyday devices, not on servers out on the Internet.
+  const sources = hosts.filter((h) => !isServer(h.kind));
   const [cmd, setCmd] = useState<Command>('ping');
-  const [from, setFrom] = useState(() => hosts.find((h) => h.id === selectedId)?.id ?? hosts[0]?.id ?? '');
+  const [from, setFrom] = useState(
+    () => sources.find((h) => h.id === selectedId)?.id ?? sources[0]?.id ?? '',
+  );
   const [target, setTarget] = useState<string | null>(null);
   const spec = COMMANDS.find((c) => c.id === cmd)!;
 
   const targets = useMemo(() => {
     if (!from || !spec.needsTarget) return [];
-    const names = knownNames(topo, from).map((n) => ({ id: n, label: n }));
-    if (cmd === 'nslookup') return names;
-    const devices = hosts.filter((h) => h.id !== from).map((h) => ({ id: h.id, label: h.name }));
-    return [...devices, ...names];
+    const names = knownNames(topo, from);
+    if (cmd === 'nslookup') return names.map((n) => ({ id: n, label: n }));
+    // Anything with a name (like videos.fun) is only offered by its name, to keep the choice simple.
+    const named = new Set(names.map((n) => resolveName(topo, from, n).deviceId));
+    const devices = hosts
+      .filter((h) => h.id !== from && !named.has(h.id))
+      .map((h) => ({ id: h.id, label: h.name }));
+    return [...devices, ...names.map((n) => ({ id: n, label: n }))];
   }, [topo, from, cmd, spec.needsTarget, hosts]);
 
   useEffect(() => {
@@ -63,22 +79,24 @@ export function Terminal() {
       aria-label="Terminal"
     >
       <div className={styles.builder}>
-        <div className={styles.row}>
-          <span className={styles.label}>Command</span>
-          {COMMANDS.map((c) => pill(cmd === c.id, () => setCmd(c.id), c.id, c.id))}
-        </div>
-        <p className={styles.help}>{spec.help}</p>
-        <div className={styles.row}>
-          <span className={styles.label}>From</span>
-          {hosts.map((h) => pill(from === h.id, () => setFrom(h.id), h.name, h.id))}
-        </div>
-        {spec.needsTarget && (
+        <div className={styles.pills}>
           <div className={styles.row}>
-            <span className={styles.label}>To</span>
-            {targets.map((t) => pill(target === t.id, () => setTarget(t.id), t.label, t.id))}
+            <span className={styles.label}>Command</span>
+            {COMMANDS.map((c) => pill(cmd === c.id, () => setCmd(c.id), c.id, c.id))}
           </div>
-        )}
-        <div className={styles.row}>
+          <p className={styles.help}>{spec.help}</p>
+          <div className={styles.row}>
+            <span className={styles.label}>From</span>
+            {sources.map((h) => pill(from === h.id, () => setFrom(h.id), h.name, h.id))}
+          </div>
+          {spec.needsTarget && (
+            <div className={styles.row}>
+              <span className={styles.label}>To</span>
+              {targets.map((t) => pill(target === t.id, () => setTarget(t.id), t.label, t.id))}
+            </div>
+          )}
+        </div>
+        <div className={styles.actions}>
           <button
             className={styles.run}
             disabled={!ready || busy}

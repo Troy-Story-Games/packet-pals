@@ -39,4 +39,9 @@ export interface Mission {
   minLevel?: number;
   /** Advanced features switched on while playing this mission. */
   features?: Feature[];
+  /**
+   * A gentle hint when the latest packet was close but not quite what the mission
+   * wants (e.g. the right ping, but not from the Terminal).
+   */
+  nudge?: (latest: HistoryEntry, history: HistoryEntry[]) => string | undefined;
 }

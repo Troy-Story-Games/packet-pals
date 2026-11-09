@@ -183,3 +183,18 @@ describe('missions', () => {
     expect(missionStars(timed, 0, 0, 170)).toBe(1);
   });
 });
+
+describe('mission nudges', () => {
+  it('Network Detective nudges a ping sent outside the Terminal', () => {
+    const mission = MISSIONS.find((m) => m.id === 'network-detective')!;
+    const p = new Player(mission).update('wall', { powered: true }).send('pc', 'ping', 'videos.fun');
+    expect(p.done()).toBe(false);
+    expect(mission.nudge?.(p.history.at(-1)!, p.history)).toMatch(/Terminal/);
+  });
+
+  it('Door Numbers nudges a message sent the wrong way round', () => {
+    const mission = MISSIONS.find((m) => m.id === 'door-numbers')!;
+    const p = new Player(mission).send('pc', 'message', 'friend');
+    expect(mission.nudge?.(p.history.at(-1)!, p.history)).toMatch(/Other way round/);
+  });
+});

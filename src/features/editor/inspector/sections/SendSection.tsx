@@ -5,7 +5,9 @@ import {
   canTarget,
   DEVICE_SPECS,
   DOMAINS,
+  isServer,
   knownNames,
+  resolveName,
   SERVER_FOR_ACTION,
   type Action,
   type Device,
@@ -49,8 +51,17 @@ export function SendSection({ device, topo }: { device: Device; topo: Topology }
         ];
       case 'web':
         return names();
+      case 'ping': {
+        // Like the terminal: things with a name (videos.fun) are offered by name only.
+        const allNames = knownNames(topo, device.id);
+        const named = new Set(allNames.map((n) => resolveName(topo, device.id, n).deviceId));
+        return [
+          ...devices((d) => DEVICE_SPECS[d.kind].isHost && !named.has(d.id)),
+          ...allNames.map((n) => ({ to: n, label: n })),
+        ];
+      }
       default:
-        return devices((d) => DEVICE_SPECS[d.kind].isHost);
+        return devices((d) => DEVICE_SPECS[d.kind].isHost && !isServer(d.kind));
     }
   };
 
