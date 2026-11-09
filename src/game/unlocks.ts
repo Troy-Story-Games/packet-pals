@@ -13,6 +13,7 @@ const UNLOCKED_BY: Partial<Record<DeviceKind, string>> = {
   phone: 'phone-home',
   cellTower: 'phone-home',
   dnsServer: 'phone-book',
+  vpnServer: 'reach-home',
 };
 
 export const SANDBOX_KINDS: DeviceKind[] = [
@@ -32,6 +33,7 @@ export const SANDBOX_KINDS: DeviceKind[] = [
   'phone',
   'cellTower',
   'dnsServer',
+  'vpnServer',
   'smartSpeaker',
   'smartTv',
   'doorbell',

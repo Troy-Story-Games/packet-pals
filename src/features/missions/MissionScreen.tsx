@@ -21,6 +21,7 @@ export function MissionScreen({ missionId }: { missionId: string }) {
   const completeMission = useProgress((s) => s.completeMission);
   const network = useEditor((s) => s.network);
   const history = useEditor((s) => s.history);
+  const commands = useEditor((s) => s.commandsRun);
   const playback = useEditor((s) => s.playback);
   const startedAt = useEditor((s) => s.loadedAt);
   // Let the kid enjoy the printout before the mission card appears.
@@ -54,11 +55,12 @@ export function MissionScreen({ missionId }: { missionId: string }) {
   // Check the goal whenever a packet animation finishes or the network changes.
   useEffect(() => {
     if (!mission || result || playback || printing || history.length === 0) return;
-    if (!mission.check({ network, topo, history })) {
+    const ctx = { network, topo, history, commands };
+    if (!mission.check(ctx)) {
       // Not done yet: if the last try was close, give a friendly nudge after the result is read.
       // Nudge once per try, not again every time the network changes.
       if (nudgedAt.current === history.length) return;
-      const tip = mission.nudge?.(history[history.length - 1], history);
+      const tip = mission.nudge?.(history[history.length - 1], history, ctx);
       if (!tip) return;
       nudgedAt.current = history.length;
       const timer = window.setTimeout(() => useEditor.getState().say(tip, 'think'), 2500);
@@ -73,7 +75,19 @@ export function MissionScreen({ missionId }: { missionId: string }) {
       burstConfetti();
     }, 900);
     return () => window.clearTimeout(timer);
-  }, [mission, network, topo, history, playback, result, hintsUsed, completeMission, startedAt, printing]);
+  }, [
+    mission,
+    network,
+    topo,
+    history,
+    commands,
+    playback,
+    result,
+    hintsUsed,
+    completeMission,
+    startedAt,
+    printing,
+  ]);
 
   if (!mission || !unlocked) {
     return (

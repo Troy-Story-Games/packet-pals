@@ -12,12 +12,15 @@ import {
   type Network,
 } from '@/core/sim';
 import { MISSIONS, missionStars } from '@/game/missions/catalogue';
-import type { HistoryEntry, Mission } from '@/game/missions/types';
+import type { CommandRun, HistoryEntry, Mission, MissionContext } from '@/game/missions/types';
 
 /** Plays a mission like a kid would, using only editor-level operations. */
 class Player {
   network: Network;
   history: HistoryEntry[] = [];
+  commands: CommandRun[] = [];
+  /** ARP memory while the 👀 Helpers are switched on. */
+  arp: Record<string, string[]> | undefined;
 
   constructor(readonly mission: Mission) {
     this.network = mission.setup();
@@ -56,24 +59,33 @@ class Player {
 
   send(from: string, action: Action, to?: string): this {
     const topo = new Topology(this.network);
-    const journey = sendPacket(topo, from, action, to);
-    const ids = [
-      journey.from,
-      ...journey.steps.flatMap((s) => s.moves.filter((m) => m.fate !== 'ignored').map((m) => m.to)),
-    ];
-    this.history.push({ journey, kindsOnPath: ids.map((id) => topo.device(id).kind) });
+    this.record(topo, sendPacket(topo, from, action, to, this.options()));
     return this;
   }
 
   /** Runs a terminal command, the way the Terminal panel does. */
   command(cmd: Command, from: string, target?: string): this {
     const topo = new Topology(this.network);
-    const { journey } = runCommand(topo, cmd, from, target);
+    const { journey } = runCommand(topo, cmd, from, target, this.options());
+    this.commands.push({ command: cmd, from, at: this.history.length });
     if (journey) this.record(topo, journey, cmd);
     return this;
   }
 
+  /** Switches on the 👀 Helpers, like the toolbar button. */
+  helpers(): this {
+    this.arp = {};
+    return this;
+  }
+
+  private options() {
+    return this.arp ? { arp: this.arp } : {};
+  }
+
   private record(topo: Topology, journey: Journey, command?: Command): void {
+    for (const { deviceId, ip } of journey.learned ?? []) {
+      if (this.arp) this.arp[deviceId] = [...(this.arp[deviceId] ?? []), ip];
+    }
     const ids = [
       journey.from,
       ...journey.steps.flatMap((s) => s.moves.filter((m) => m.fate !== 'ignored').map((m) => m.to)),
@@ -81,12 +93,33 @@ class Player {
     this.history.push({ journey, kindsOnPath: ids.map((id) => topo.device(id).kind), command });
   }
 
-  done(): boolean {
-    return this.mission.check({
+  /** Puts the cable between `a` and `b` on a team (VLAN), like tapping a switch socket. */
+  team(a: string, b: string, vlan: number): this {
+    this.network = {
+      ...this.network,
+      links: this.network.links.map((l) =>
+        (l.a === a && l.b === b) || (l.a === b && l.b === a) ? { ...l, vlan } : l,
+      ),
+    };
+    return this;
+  }
+
+  context(): MissionContext {
+    return {
       network: this.network,
       topo: new Topology(this.network),
       history: this.history,
-    });
+      commands: this.commands,
+    };
+  }
+
+  done(): boolean {
+    return this.mission.check(this.context());
+  }
+
+  /** The nudge Pip would give after the latest packet. */
+  nudge(): string | undefined {
+    return this.mission.nudge?.(this.history.at(-1)!, this.history, this.context());
   }
 }
 
@@ -143,6 +176,38 @@ const SOLUTIONS: Record<string, (p: Player) => void> = {
         firewall: { blockedApps: [], blockedDevices: [], doors: [{ app: 'game', deviceId: 'myconsole' }] },
       })
       .send('friendconsole', 'game', 'myconsole'),
+  'guest-wifi': (p) =>
+    p
+      .update('router', {
+        router: {
+          wifiOn: true,
+          ssid: 'Treehouse',
+          password: 'pizza123',
+          dhcp: true,
+          guest: { on: true, ssid: 'Visitors', password: 'welcome' },
+        },
+      })
+      .update('visitor', { wifi: { ssid: 'Visitors', password: 'welcome' } })
+      .send('visitor', 'video')
+      .send('visitor', 'print', 'printer'),
+  'team-colors': (p) =>
+    p.team('parents', 'switch', 2).send('kids', 'message', 'parents').send('parents', 'web'),
+  'who-has': (p) => p.helpers().send('pc', 'print', 'printer').command('arp', 'pc'),
+  'reach-home': (p) =>
+    p
+      .update('wall', {
+        firewall: { blockedApps: [], blockedDevices: [], doors: [{ app: 'vpn', deviceId: 'homevpn' }] },
+      })
+      .update('laptop', { vpn: 'homevpn' })
+      .send('laptop', 'print', 'printer'),
+  'hidden-address': (p) =>
+    p.send('laptop', 'web').update('laptop', { vpn: 'cloudvpn' }).send('laptop', 'web'),
+  'tunnel-trick': (p) =>
+    p
+      .update('pc', { vpn: 'cloudvpn' })
+      .send('pc', 'game')
+      .update('wall', { firewall: { blockedApps: ['game', 'vpn'], blockedDevices: [], doors: [] } })
+      .send('pc', 'game'),
   'packet-race': (p) =>
     p
       .add('computer', 'pc')
@@ -189,12 +254,53 @@ describe('mission nudges', () => {
     const mission = MISSIONS.find((m) => m.id === 'network-detective')!;
     const p = new Player(mission).update('wall', { powered: true }).send('pc', 'ping', 'videos.fun');
     expect(p.done()).toBe(false);
-    expect(mission.nudge?.(p.history.at(-1)!, p.history)).toMatch(/Terminal/);
+    expect(p.nudge()).toMatch(/Terminal/);
   });
 
   it('Door Numbers nudges a message sent the wrong way round', () => {
     const mission = MISSIONS.find((m) => m.id === 'door-numbers')!;
     const p = new Player(mission).send('pc', 'message', 'friend');
-    expect(mission.nudge?.(p.history.at(-1)!, p.history)).toMatch(/Other way round/);
+    expect(p.nudge()).toMatch(/Other way round/);
+  });
+
+  const play = (id: string) => new Player(MISSIONS.find((m) => m.id === id)!);
+
+  it('Guest WiFi nudges a visitor using the family WiFi', () => {
+    const p = play('guest-wifi')
+      .update('visitor', { wifi: { ssid: 'Treehouse', password: 'pizza123' } })
+      .send('visitor', 'print', 'printer');
+    expect(p.done()).toBe(false);
+    expect(p.nudge()).toMatch(/printed on YOUR printer/);
+  });
+
+  it('Team Colours nudges when the teams are still the same', () => {
+    expect(play('team-colors').send('kids', 'message', 'parents').nudge()).toMatch(/same team/);
+  });
+
+  it('Who Has? only counts arp after a visible shout', () => {
+    const early = play('who-has').command('arp', 'pc').helpers().send('pc', 'print', 'printer');
+    expect(early.done()).toBe(false);
+    expect(early.nudge()).toMatch(/run arp/);
+    expect(play('who-has').send('pc', 'print', 'printer').nudge()).toMatch(/Helpers/);
+  });
+
+  it('Secret Tunnel Home warns about opening the print door instead', () => {
+    const p = play('reach-home')
+      .update('wall', {
+        firewall: { blockedApps: [], blockedDevices: [], doors: [{ app: 'print', deviceId: 'printer' }] },
+      })
+      .send('laptop', 'print', 'printer');
+    expect(p.history[0].journey.outcome).toBe('delivered');
+    expect(p.done()).toBe(false);
+    expect(p.nudge()).toMatch(/ANYONE on the Internet/);
+    expect(
+      play('reach-home').update('laptop', { vpn: 'homevpn' }).send('laptop', 'print', 'printer').nudge(),
+    ).toMatch(/Open the VPNs door/);
+  });
+
+  it('Tunnel Trick nudges the boss step after sneaking through', () => {
+    const p = play('tunnel-trick').update('pc', { vpn: 'cloudvpn' }).send('pc', 'game');
+    expect(p.done()).toBe(false);
+    expect(p.nudge()).toMatch(/block VPNs/);
   });
 });

@@ -1,5 +1,6 @@
 import { Emoji } from '@/components/Emoji';
-import { DOMAINS, type Device, type Topology } from '@/core/sim';
+import { DOMAINS, macOf, vlanInfo, type Device, type Topology } from '@/core/sim';
+import { useSettings } from '@/services/settings';
 import { useEditor } from '../../editorStore';
 import styles from '../Inspector.module.css';
 
@@ -14,6 +15,10 @@ const SOURCE_TEXT = {
 
 /** What this device is connected to and its address, in plain words. */
 export function StatusSection({ device, topo }: { device: Device; topo: Topology }) {
+  const showTeams = useEditor((s) => s.features.includes('vlans') || s.features.includes('guestWifi'));
+  const arpTaught = useEditor((s) => s.features.includes('arp'));
+  const helpers = useSettings((s) => s.helpers);
+  const showMac = arpTaught && helpers;
   if (!device.powered) {
     return (
       <section className={styles.section}>
@@ -27,6 +32,8 @@ export function StatusSection({ device, topo }: { device: Device; topo: Topology
   const links = topo.neighbours(device.id);
   const address = topo.address(device.id);
   const domain = DOMAINS[device.kind];
+  // Teams only matter on a switch socket or the Guest WiFi, so don't show Blue everywhere.
+  const onSwitch = links.some((e) => topo.device(topo.other(e, device.id)).kind === 'switch');
 
   return (
     <section className={styles.section}>
@@ -51,6 +58,22 @@ export function StatusSection({ device, topo }: { device: Device; topo: Topology
           {SOURCE_TEXT[address.source] && (
             <span className={styles.hint}> ({SOURCE_TEXT[address.source]})</span>
           )}
+        </p>
+      )}
+      {showTeams && address.vlan !== undefined && (address.vlan !== 1 || onSwitch) && (
+        <p>
+          Team: <span className={styles.teamDot} style={{ background: vlanInfo(address.vlan).color }} />{' '}
+          <strong>{vlanInfo(address.vlan).name}</strong>
+        </p>
+      )}
+      {showMac && address.ip && (
+        <p>
+          Hardware address (MAC): <span className={styles.mono}>{macOf(device.id)}</span>
+        </p>
+      )}
+      {device.vpn && topo.devices.has(device.vpn) && (
+        <p>
+          <Emoji code="1f510" /> Using the VPN: <strong>{topo.device(device.vpn).name}</strong>
         </p>
       )}
       {topo.frontDoor(device.id) && (

@@ -1,4 +1,5 @@
 import { Emoji } from '@/components/Emoji';
+import { useSettings } from '@/services/settings';
 import { useEditor, type Tool } from '../editorStore';
 import styles from './ToolBar.module.css';
 
@@ -15,6 +16,9 @@ export function ToolBar() {
   const hasTerminal = useEditor((s) => s.features.includes('terminal'));
   const terminalOpen = useEditor((s) => s.terminalOpen);
   const setTerminalOpen = useEditor((s) => s.setTerminalOpen);
+  const hasHelpers = useEditor((s) => s.features.includes('arp'));
+  const helpers = useSettings((s) => s.helpers);
+  const toggleHelpers = useEditor((s) => s.toggleHelpers);
   return (
     <div className={styles.bar} role="toolbar" aria-label="Tools">
       {TOOLS.map((t) => (
@@ -36,6 +40,16 @@ export function ToolBar() {
         >
           <Emoji code="1f4bb" size={34} />
           <span>Terminal</span>
+        </button>
+      )}
+      {hasHelpers && (
+        <button
+          className={`${styles.tool} ${helpers ? styles.active : ''}`}
+          aria-pressed={helpers}
+          onClick={toggleHelpers}
+        >
+          <Emoji code="1f440" size={34} />
+          <span>Helpers</span>
         </button>
       )}
     </div>

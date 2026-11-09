@@ -1,5 +1,5 @@
 export * from './devices';
-export { canTarget, sendPacket } from './journey';
+export { canTarget, macOf, sendPacket, type SendOptions } from './journey';
 export { COMMANDS, runCommand, type Command, type CommandResult } from './commands';
 export { knownNames, normaliseName, resolveName } from './dns';
 export { createDevice, connect, nextName, type ConnectResult } from './edit';

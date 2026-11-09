@@ -9,10 +9,19 @@ export interface HistoryEntry {
   command?: Command;
 }
 
+/** A terminal command that was run. `at` is how many packets had been sent before it. */
+export interface CommandRun {
+  command: Command;
+  from: string;
+  at: number;
+}
+
 export interface MissionContext {
   network: Network;
   topo: Topology;
   history: HistoryEntry[];
+  /** Terminal commands run, in order, including ones that send no packet (like arp). */
+  commands: CommandRun[];
 }
 
 export interface Mission {
@@ -43,5 +52,5 @@ export interface Mission {
    * A gentle hint when the latest packet was close but not quite what the mission
    * wants (e.g. the right ping, but not from the Terminal).
    */
-  nudge?: (latest: HistoryEntry, history: HistoryEntry[]) => string | undefined;
+  nudge?: (latest: HistoryEntry, history: HistoryEntry[], ctx: MissionContext) => string | undefined;
 }

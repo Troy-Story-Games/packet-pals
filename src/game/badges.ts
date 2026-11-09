@@ -81,6 +81,20 @@ export const BADGES: Badge[] = [
     earned: (c) => c.stats.printsDone >= 1,
   },
   {
+    id: 'neighbour-finder',
+    name: 'Neighbour Finder',
+    description: 'See a device shout "Who has?" to find a neighbour.',
+    emoji: '1f440',
+    earned: (c) => c.stats.arpShouts >= 1,
+  },
+  {
+    id: 'secret-tunnel',
+    name: 'Secret Tunnel',
+    description: 'Send a packet through a VPN tunnel.',
+    emoji: '1f510',
+    earned: (c) => c.stats.tunnelTrips >= 1,
+  },
+  {
     id: 'architect',
     name: 'Network Architect',
     description: 'Build a network with 10 devices.',

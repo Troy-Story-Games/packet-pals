@@ -12,6 +12,12 @@ interface SavedDevice {
   ip?: string;
   w?: [string, string];
   r?: [0 | 1, string, string, 0 | 1];
+  /** Router Guest WiFi: on, name, password. */
+  g?: [0 | 1, string, string];
+  /** Router lets teams (VLANs) talk. */
+  vr?: 1;
+  /** VPN server this device tunnels through. */
+  v?: string;
   f?: [AppKind[], string[]];
   /** Firewall doors: [app, device id]. */
   fd?: Array<[AppKind, string]>;
@@ -35,7 +41,8 @@ interface SavedDecoration {
 export interface SavedNetwork {
   v: 1;
   d: SavedDevice[];
-  l: Array<[string, string]>;
+  /** Links: [a, b, team of the switch socket if not Blue]. */
+  l: Array<[string, string] | [string, string, number]>;
   b?: SavedDecoration[];
 }
 
@@ -57,6 +64,10 @@ export function exportNetwork(network: Network): SavedNetwork {
       if (d.wifi) saved.w = [d.wifi.ssid, d.wifi.password];
       if (d.router)
         saved.r = [d.router.wifiOn ? 1 : 0, d.router.ssid, d.router.password, d.router.dhcp ? 1 : 0];
+      if (d.router?.guest)
+        saved.g = [d.router.guest.on ? 1 : 0, d.router.guest.ssid, d.router.guest.password];
+      if (d.router?.vlanRouting) saved.vr = 1;
+      if (d.vpn && ids.has(d.vpn)) saved.v = ids.get(d.vpn);
       if (d.firewall)
         saved.f = [d.firewall.blockedApps, d.firewall.blockedDevices.map((id) => ids.get(id) ?? id)];
       if (d.firewall?.doors?.length)
@@ -67,7 +78,9 @@ export function exportNetwork(network: Network): SavedNetwork {
         saved.ns = d.dns.entries.map((e) => [e.name, ids.get(e.deviceId) ?? e.deviceId]);
       return saved;
     }),
-    l: network.links.map((l) => [ids.get(l.a)!, ids.get(l.b)!]),
+    l: network.links.map((l) =>
+      l.vlan && l.vlan !== 1 ? [ids.get(l.a)!, ids.get(l.b)!, l.vlan] : [ids.get(l.a)!, ids.get(l.b)!],
+    ),
     ...(network.decorations?.length
       ? {
           b: network.decorations.map((b) => ({
@@ -99,6 +112,8 @@ export function importNetwork(data: unknown): Network | null {
     if (s.k === 'router') {
       const r = s.r ?? [1, 'Home WiFi', 'secret123', 1];
       d.router = { wifiOn: r[0] === 1, ssid: String(r[1]), password: String(r[2]), dhcp: r[3] === 1 };
+      if (s.g) d.router.guest = { on: s.g[0] === 1, ssid: String(s.g[1]), password: String(s.g[2]) };
+      if (s.vr === 1) d.router.vlanRouting = true;
     }
     if (s.k === 'firewall') {
       d.firewall = {
@@ -108,6 +123,7 @@ export function importNetwork(data: unknown): Network | null {
       };
     }
     if (s.c === 1) d.network = 'cell';
+    if (s.v) d.vpn = String(s.v);
     if (s.dn) d.domain = String(s.dn).slice(0, 40);
     if (s.k === 'dnsServer')
       d.dns = { entries: (s.ns ?? []).map(([name, deviceId]) => ({ name: String(name), deviceId })) };
@@ -116,7 +132,10 @@ export function importNetwork(data: unknown): Network | null {
   const known = new Set(devices.map((d) => d.id));
   const links = data.l
     .filter(([a, b]) => known.has(a) && known.has(b) && a !== b)
-    .map(([a, b], i) => ({ id: `link-${i}`, a, b }));
+    .map(([a, b, vlan], i) =>
+      Number(vlan) > 1 ? { id: `link-${i}`, a, b, vlan: Number(vlan) } : { id: `link-${i}`, a, b },
+    );
+  for (const d of devices) if (d.vpn && !known.has(d.vpn)) delete d.vpn;
   const decorations: Decoration[] = (data.b ?? [])
     .filter((b) => TEMPLATES.includes(b.t))
     .map((b, i) => ({

@@ -11,9 +11,11 @@ import { AddressSection } from './sections/AddressSection';
 import { DnsSection } from './sections/DnsSection';
 import { FirewallSection } from './sections/FirewallSection';
 import { PhoneSection } from './sections/PhoneSection';
-import { RouterSection } from './sections/RouterSection';
+import { RouterAdvanced, RouterSection } from './sections/RouterSection';
 import { SendSection } from './sections/SendSection';
 import { StatusSection } from './sections/StatusSection';
+import { SwitchSection } from './sections/SwitchSection';
+import { VpnSection } from './sections/VpnSection';
 import { WifiSection } from './sections/WifiSection';
 
 /** Settings and actions for the selected device. */
@@ -64,11 +66,14 @@ export function Inspector() {
         <WifiSection device={device} topo={topo} />
       )}
       {device.kind === 'router' && <RouterSection device={device} />}
+      {device.kind === 'router' && <RouterAdvanced device={device} />}
+      {device.kind === 'switch' && <SwitchSection device={device} />}
       {device.kind === 'firewall' && <FirewallSection device={device} />}
       {device.kind === 'dnsServer' && <DnsSection device={device} />}
       {spec.isHost && device.kind !== 'router' && !isServer(device.kind) && (
         <AddressSection device={device} topo={topo} />
       )}
+      {canSend && <VpnSection device={device} />}
 
       <section className={styles.section}>
         <Toggle

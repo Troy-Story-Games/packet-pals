@@ -1,7 +1,17 @@
 import { MISSIONS } from './missions/catalogue';
 
 /** Advanced abilities that unlock by finishing the mission that teaches them. */
-export type Feature = 'cell' | 'dnsServer' | 'dnsNames' | 'terminal' | 'doors' | 'hostGames';
+export type Feature =
+  | 'cell'
+  | 'dnsServer'
+  | 'dnsNames'
+  | 'terminal'
+  | 'doors'
+  | 'hostGames'
+  | 'guestWifi'
+  | 'vlans'
+  | 'arp'
+  | 'vpn';
 
 export const FEATURE_MISSION: Record<Feature, string> = {
   cell: 'phone-home',
@@ -10,6 +20,10 @@ export const FEATURE_MISSION: Record<Feature, string> = {
   dnsNames: 'my-website',
   doors: 'door-numbers',
   hostGames: 'game-night',
+  guestWifi: 'guest-wifi',
+  vlans: 'team-colors',
+  arp: 'who-has',
+  vpn: 'reach-home',
 };
 
 export const ALL_FEATURES = Object.keys(FEATURE_MISSION) as Feature[];

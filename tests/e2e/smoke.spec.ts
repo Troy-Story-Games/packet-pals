@@ -154,3 +154,36 @@ test('the terminal runs commands built from pills', async ({ page }) => {
   await expect(terminal.getByText(/Computer> ipconfig/)).toBeVisible();
   await expect(terminal.getByText(/Address/)).toBeVisible();
 });
+
+const CHAPTER_2 = [
+  'phone-home',
+  'phone-book',
+  'network-detective',
+  'my-website',
+  'door-numbers',
+  'game-night',
+];
+
+test('switch sockets can be painted team colours', async ({ page }) => {
+  await progress(page, [...CHAPTER_2, 'guest-wifi']);
+  await page.goto('./#/missions/team-colors');
+  await dismissRewards(page);
+  await device(page, 'Switch').click();
+  await page.getByRole('button', { name: /Advanced: Team colours/ }).click();
+  await page.getByRole('button', { name: /Parents' PC is on the Blue team/ }).click();
+  await expect(page.getByRole('button', { name: /Parents' PC is on the Red team/ })).toBeVisible();
+  // On phones the settings sheet covers the canvas, so close it first.
+  await page.getByRole('button', { name: 'Close' }).click();
+  await device(page, "Parents' PC").click();
+  await expect(page.getByRole('complementary').getByText('192.168.12.10')).toBeVisible();
+});
+
+test('a laptop can connect to a VPN server', async ({ page }) => {
+  await progress(page, [...CHAPTER_2, 'guest-wifi', 'team-colors', 'who-has']);
+  await page.goto('./#/missions/reach-home');
+  await dismissRewards(page);
+  await device(page, 'Your Laptop').click();
+  await page.getByRole('button', { name: /Advanced: VPN/ }).click();
+  await page.getByRole('button', { name: 'Home VPN', exact: true }).click();
+  await expect(page.getByText(/Using the VPN/)).toBeVisible();
+});

@@ -1,3 +1,4 @@
+import type { CSSProperties } from 'react';
 import { BaseEdge, useInternalNode, type Edge, type EdgeProps } from '@xyflow/react';
 import type { Via } from '@/core/sim';
 import { ACTION_INFO, ART_CENTER_Y, STEP_MS } from '../actions';
@@ -5,7 +6,15 @@ import { useEditor } from '../editorStore';
 import { PacketCritter } from './PacketCritter';
 import styles from './NetworkEdge.module.css';
 
-export type NetworkEdgeData = { via: Via; linkId?: string };
+export type NetworkEdgeData = {
+  via: Via;
+  linkId?: string;
+  /** Team (VLAN) colour, for painted switch sockets and Guest WiFi. */
+  team?: string;
+};
+
+/** Packet colours for helper packets; the real packet uses its action's colour. */
+const HELPER_COLORS = { lookup: '#14b8a6', arp: '#f59e0b' } as const;
 export type NetworkEdgeType = Edge<NetworkEdgeData, 'network'>;
 
 function useCentre(id: string): { x: number; y: number } | null {
@@ -43,9 +52,12 @@ export function NetworkEdge({ id, source, target, data }: EdgeProps<NetworkEdgeT
       )
     : [];
   const step = steps[playback?.step ?? 0];
-  // Phone-book questions are teal; the real packet uses its action's colour.
-  const color =
-    step?.packet === 'lookup' ? '#14b8a6' : playback ? ACTION_INFO[playback.journey.action].color : '#fff';
+  const helper = step?.packet === 'lookup' || step?.packet === 'arp' ? step.packet : undefined;
+  const color = helper
+    ? HELPER_COLORS[helper]
+    : playback
+      ? ACTION_INFO[playback.journey.action].color
+      : '#fff';
 
   return (
     <>
@@ -56,7 +68,12 @@ export function NetworkEdge({ id, source, target, data }: EdgeProps<NetworkEdgeT
         data-erase={tool === 'erase' && !wifi && !cell ? 'true' : undefined}
       />
       {wifi || cell ? (
-        <BaseEdge id={id} path={path} className={cell ? styles.cell : styles.wifi} />
+        <BaseEdge
+          id={id}
+          path={path}
+          className={cell ? styles.cell : styles.wifi}
+          style={data.team ? ({ '--team': data.team } as CSSProperties) : undefined}
+        />
       ) : (
         <>
           <path d={path} className={styles.cableShadow} />
@@ -64,6 +81,7 @@ export function NetworkEdge({ id, source, target, data }: EdgeProps<NetworkEdgeT
             id={id}
             path={path}
             className={`${styles.cable} ${tool === 'erase' ? styles.erasable : ''}`}
+            style={data.team && tool !== 'erase' ? ({ '--team': data.team } as CSSProperties) : undefined}
           />
         </>
       )}
@@ -74,6 +92,7 @@ export function NetworkEdge({ id, source, target, data }: EdgeProps<NetworkEdgeT
           reverse={m.from !== source}
           color={color}
           fate={m.fate}
+          tunnel={step?.packet === 'tunnel'}
           durationMs={STEP_MS * 0.92}
         />
       ))}

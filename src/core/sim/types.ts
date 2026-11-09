@@ -13,6 +13,7 @@ export type DeviceKind =
   | 'gameServer'
   | 'webServer'
   | 'dnsServer'
+  | 'vpnServer'
   | 'phone'
   | 'cellTower'
   | 'smartSpeaker'
@@ -24,7 +25,7 @@ export type DeviceKind =
 
 /** Things a packet can be trying to do. Firewalls filter by the matching app. */
 export type Action = 'ping' | 'message' | 'video' | 'game' | 'web' | 'print';
-export type AppKind = 'chat' | 'ping' | 'video' | 'game' | 'web' | 'print';
+export type AppKind = 'chat' | 'ping' | 'video' | 'game' | 'web' | 'print' | 'vpn';
 
 export interface RouterConfig {
   wifiOn: boolean;
@@ -32,6 +33,10 @@ export interface RouterConfig {
   password: string;
   /** Hand out addresses automatically. */
   dhcp: boolean;
+  /** A second, separate WiFi for visitors. Guests can use the Internet but not the home network. */
+  guest?: { on: boolean; ssid: string; password: string };
+  /** Let devices on different teams (VLANs) talk to each other through the router. */
+  vlanRouting?: boolean;
 }
 
 /** A port-forwarding rule: let this app in from the Internet, to this device. */
@@ -69,6 +74,8 @@ export interface Device {
   firewall?: FirewallConfig;
   /** Phones: use WiFi or the mobile (cell) network. */
   network?: 'wifi' | 'cell';
+  /** The VPN server this device sends all its traffic through, if any. */
+  vpn?: string;
   /** Video, game and web servers: the website name they answer to. */
   domain?: string;
   /** DNS servers: custom names they know. */
@@ -81,6 +88,8 @@ export interface Link {
   id: string;
   a: string;
   b: string;
+  /** Team (VLAN) of the switch socket this cable plugs into. Default 1. */
+  vlan?: number;
 }
 
 export type BuildingTemplate = 'house1' | 'house2' | 'house3' | 'office';
@@ -109,6 +118,10 @@ export interface Edge {
   b: string;
   via: Via;
   linkId?: string;
+  /** This connection only carries one team (VLAN). */
+  access?: number;
+  /** This connection carries every team (switch to switch, switch to router). */
+  trunk?: boolean;
 }
 
 export type AddressSource = 'dhcp' | 'static' | 'self' | 'public' | 'carrier' | 'none';
@@ -118,6 +131,8 @@ export interface Address {
   source: AddressSource;
   /** The router that is this device's way out to the Internet. */
   gatewayId?: string;
+  /** The team (VLAN) the device is on. */
+  vlan?: number;
 }
 
 export type WifiState = 'none' | 'connected' | 'wrongPassword' | 'outOfRange' | 'noSuchNetwork';
@@ -125,6 +140,8 @@ export type WifiState = 'none' | 'connected' | 'wrongPassword' | 'outOfRange' | 
 export interface WifiStatus {
   state: WifiState;
   routerId?: string;
+  /** Joined the router's Guest WiFi rather than the main one. */
+  guest?: boolean;
 }
 
 /** One packet moving along one connection during a step of a journey. */
@@ -142,8 +159,11 @@ export interface Move {
 
 export interface JourneyStep {
   moves: Move[];
-  /** Lookup steps carry a question to the DNS server rather than the real packet. */
-  packet?: 'lookup';
+  /**
+   * What kind of packet is moving: a phone-book question (lookup), an
+   * address-finding shout (arp), or the real packet inside a VPN tunnel.
+   */
+  packet?: 'lookup' | 'arp' | 'tunnel';
   /** Something to say while this step plays (e.g. DNS lookups). */
   note?: string;
 }
@@ -162,4 +182,8 @@ export interface Journey {
   replySteps: JourneyStep[];
   /** The name that was looked up, if the target was a name like videos.fun. */
   name?: string;
+  /** Addresses devices learned with ARP during this journey: device → IP it now knows. */
+  learned?: Array<{ deviceId: string; ip: string }>;
+  /** The VPN server the packet tunnelled through. */
+  vpnId?: string;
 }

@@ -11,6 +11,8 @@ const APPS: AppKind[] = ['game', 'video', 'web', 'chat', 'ping'];
 export function FirewallSection({ device }: { device: Device }) {
   const updateDevice = useEditor((s) => s.updateDevice);
   const devices = useEditor((s) => s.network.devices);
+  // Blocking VPNs is only offered once VPNs have been taught.
+  const apps: AppKind[] = useEditor((s) => s.features.includes('vpn')) ? [...APPS, 'vpn'] : APPS;
   const rules = device.firewall!;
   const hosts = devices.filter((d) => DEVICE_SPECS[d.kind].isHost && d.kind !== 'router' && !DOMAINS[d.kind]);
 
@@ -28,7 +30,7 @@ export function FirewallSection({ device }: { device: Device }) {
           <Emoji code="1f6e1" /> Firewall rules
         </h3>
         <p className={styles.hint}>Switch on what to BLOCK.</p>
-        {APPS.map((app) => (
+        {apps.map((app) => (
           <Toggle
             key={app}
             label={`Block ${APP_LABELS[app]}`}

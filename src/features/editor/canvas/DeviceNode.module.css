@@ -87,6 +87,11 @@
   color: var(--ink-soft);
 }
 
+.guestSsid {
+  background: #f3e8ff;
+  color: #7e22ce;
+}
+
 .ssid {
   display: flex;
   align-items: center;

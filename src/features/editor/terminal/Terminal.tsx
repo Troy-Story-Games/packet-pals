@@ -26,6 +26,8 @@ export function Terminal() {
   const { runTerminal, setTerminalOpen } = useEditor.getState();
   const topo = useMemo(() => new Topology(network), [network]);
   const logRef = useRef<HTMLDivElement>(null);
+  const hasArp = useEditor((s) => s.features.includes('arp'));
+  const commands = COMMANDS.filter((c) => c.id !== 'arp' || hasArp);
 
   const hosts = useMemo(() => network.devices.filter((d) => DEVICE_SPECS[d.kind].isHost), [network.devices]);
   // Commands are typed on everyday devices, not on servers out on the Internet.
@@ -82,7 +84,7 @@ export function Terminal() {
         <div className={styles.pills}>
           <div className={styles.row}>
             <span className={styles.label}>Command</span>
-            {COMMANDS.map((c) => pill(cmd === c.id, () => setCmd(c.id), c.id, c.id))}
+            {commands.map((c) => pill(cmd === c.id, () => setCmd(c.id), c.id, c.id))}
           </div>
           <p className={styles.help}>{spec.help}</p>
           <div className={styles.row}>

@@ -17,9 +17,10 @@ const STATE_TEXT = {
 export function WifiSection({ device, topo }: { device: Device; topo: Topology }) {
   const updateDevice = useEditor((s) => s.updateDevice);
   const status = topo.wifiStatus(device.id);
+  // Routers can offer a main WiFi and a Guest WiFi.
   const inRange = topo
     .networksInRange(device)
-    .map((r) => r.router!.ssid)
+    .flatMap((r) => [r.router!.wifiOn ? r.router!.ssid : '', r.router!.guest?.on ? r.router!.guest.ssid : ''])
     .filter(Boolean);
   const ssids = [...new Set(inRange)];
   const [ssid, setSsid] = useState(device.wifi?.ssid ?? ssids[0] ?? '');
@@ -33,6 +34,7 @@ export function WifiSection({ device, topo }: { device: Device; topo: Topology }
       <p className={status.state === 'connected' ? undefined : styles.warn}>
         {STATE_TEXT[status.state]}
         {device.wifi && status.state !== 'none' && ` (${device.wifi.ssid})`}
+        {status.guest && ' as a guest'}
       </p>
       {ssids.length === 0 ? (
         <p className={styles.hint}>

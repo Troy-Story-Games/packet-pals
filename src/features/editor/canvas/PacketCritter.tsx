@@ -9,6 +9,8 @@ interface PacketCritterProps {
   reverse: boolean;
   color: string;
   fate: Move['fate'];
+  /** Travelling inside a VPN tunnel: drawn inside a glowing bubble. */
+  tunnel?: boolean;
   durationMs: number;
 }
 
@@ -16,7 +18,7 @@ interface PacketCritterProps {
  * A tiny Pip that runs along a cable. Uses SVG SMIL animation so it stays smooth
  * without re-rendering React every frame.
  */
-export function PacketCritter({ path, reverse, color, fate, durationMs }: PacketCritterProps) {
+export function PacketCritter({ path, reverse, color, fate, tunnel, durationMs }: PacketCritterProps) {
   const motionRef = useRef<SVGAnimateMotionElement>(null);
   const fadeRef = useRef<SVGAnimateElement>(null);
 
@@ -37,6 +39,9 @@ export function PacketCritter({ path, reverse, color, fate, durationMs }: Packet
 
   return (
     <g pointerEvents="none">
+      {tunnel && (
+        <circle r={26} fill="rgb(168 85 247 / 0.28)" stroke="#a855f7" strokeWidth={3} strokeDasharray="6 4" />
+      )}
       <g transform="scale(0.42)">
         <PipShape
           color={ignored ? '#cbd5e1' : color}

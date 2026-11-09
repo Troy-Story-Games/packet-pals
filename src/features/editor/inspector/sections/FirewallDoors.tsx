@@ -5,17 +5,19 @@ import { useEditor } from '../../editorStore';
 import { AdvancedSection } from '../AdvancedSection';
 import styles from '../Inspector.module.css';
 
-const DOOR_APPS: AppKind[] = ['chat', 'ping', 'game', 'web', 'video'];
+const DOOR_APPS: AppKind[] = ['chat', 'ping', 'game', 'web', 'video', 'print'];
 
 /** Port forwarding: open a numbered door so one app can come in to one device. */
 export function FirewallDoors({ device }: { device: Device }) {
   const updateDevice = useEditor((s) => s.updateDevice);
   const say = useEditor((s) => s.say);
   const devices = useEditor((s) => s.network.devices);
-  const hosts = devices.filter(
-    (d) =>
-      DEVICE_SPECS[d.kind].isHost && d.kind !== 'router' && !(isServer(d.kind) && d.kind !== 'webServer'),
-  );
+  const doorApps: AppKind[] = useEditor((s) => s.features.includes('vpn'))
+    ? [...DOOR_APPS, 'vpn']
+    : DOOR_APPS;
+  // Servers that can live at home and be visited from outside: websites and VPNs.
+  const visitable = (d: Device) => !isServer(d.kind) || d.kind === 'webServer' || d.kind === 'vpnServer';
+  const hosts = devices.filter((d) => DEVICE_SPECS[d.kind].isHost && d.kind !== 'router' && visitable(d));
   const rules = device.firewall!;
   const doors = rules.doors ?? [];
   const [app, setApp] = useState<AppKind>('chat');
@@ -49,7 +51,7 @@ export function FirewallDoors({ device }: { device: Device }) {
       <label className={styles.field}>
         Let in
         <select value={app} onChange={(e) => setApp(e.target.value as AppKind)}>
-          {DOOR_APPS.map((a) => (
+          {doorApps.map((a) => (
             <option key={a} value={a}>
               {APP_LABELS[a]} (door {DOORS[a]})
             </option>

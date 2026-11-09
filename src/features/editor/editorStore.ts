@@ -15,13 +15,16 @@ import {
   type DeviceKind,
   type Journey,
   type Network,
+  type SendOptions,
+  vlanInfo,
 } from '@/core/sim';
 import type { Feature } from '@/game/features';
-import type { HistoryEntry } from '@/game/missions/types';
+import type { CommandRun, HistoryEntry } from '@/game/missions/types';
 import { useCelebrations } from '@/game/celebrations';
 import { useProgress } from '@/game/progressStore';
 import { playPrinter } from '@/services/audio/printer';
 import { playSound } from '@/services/audio/sfx';
+import { useSettings } from '@/services/settings';
 import { rewardCable, rewardDevice, rewardJourney, rewardWifiJoin } from './rewards';
 
 export type Tool = 'move' | 'cable' | 'erase';
@@ -83,6 +86,10 @@ interface EditorState {
   terminalOpen: boolean;
   terminalLog: TerminalLine[];
   printout: Printout | null;
+  /** ARP memory: device id → neighbour addresses it has found (only used while helpers show). */
+  arpCache: Record<string, string[]>;
+  /** Every terminal command run, including ones that send no packet (like arp). */
+  commandsRun: CommandRun[];
 
   load: (
     network: Network,
@@ -103,6 +110,10 @@ interface EditorState {
   runTerminal: (cmd: Command, from: string, target?: string) => void;
   setTerminalOpen: (open: boolean) => void;
   closePrintout: () => void;
+  /** Shows or hides the hidden helpers; devices forget their neighbours so the shouts show again. */
+  toggleHelpers: () => void;
+  /** Puts a switch socket (the cable plugged into it) on a team (VLAN). */
+  setLinkTeam: (linkId: string, vlan: number) => void;
   advance: () => void;
   addBuilding: (template: BuildingTemplate, x: number, y: number) => void;
   moveBuilding: (id: string, x: number, y: number) => void;
@@ -132,6 +143,15 @@ export const useEditor = create<EditorState>()((set, get) => {
   const topology = () => new Topology(get().network);
 
   const setNetwork = (network: Network) => set({ network });
+
+  /** Send options: ARP shouts only once the helpers are unlocked and switched on. */
+  const sendOptions = (): SendOptions => {
+    const { features, arpCache } = get();
+    return {
+      arp: features.includes('arp') && useSettings.getState().helpers ? arpCache : undefined,
+      revealAddress: features.includes('vpn'),
+    };
+  };
 
   const finish = (journey: Journey, reward: () => void) => {
     // Rewards arrive with the packet, not when it leaves.
@@ -170,10 +190,14 @@ export const useEditor = create<EditorState>()((set, get) => {
       ...journey.steps.flatMap((s) => s.moves.filter((m) => m.fate !== 'ignored').map((m) => m.to)),
     ];
     const kindsOnPath = ids.map((id) => topo.device(id).kind);
-    const hubShout = journey.steps.some((s) => s.moves.some((m) => m.fate === 'ignored'));
+    // Only a hub's copies count as a hub shout (ARP shouts reach everyone through switches too).
+    const hubShout = journey.steps.some((s) =>
+      s.moves.some((m) => m.fate === 'ignored' && topo.device(m.from).kind === 'hub'),
+    );
     set((s) => ({
       history: [...s.history, { journey, kindsOnPath, command }],
       failures: s.failures + (journey.outcome === 'failed' ? 1 : 0),
+      arpCache: learn(s.arpCache, journey.learned),
     }));
     const reward = () => rewardJourney(journey, kindsOnPath, hubShout);
     pendingReward = reward;
@@ -204,6 +228,8 @@ export const useEditor = create<EditorState>()((set, get) => {
     terminalOpen: false,
     terminalLog: [],
     printout: null,
+    arpCache: {},
+    commandsRun: [],
 
     load: (network, { tools, sandbox, intro, features }) => {
       releasePopups?.();
@@ -228,6 +254,8 @@ export const useEditor = create<EditorState>()((set, get) => {
         terminalOpen: false,
         terminalLog: [],
         printout: null,
+        arpCache: {},
+        commandsRun: [],
       });
     },
 
@@ -377,13 +405,13 @@ export const useEditor = create<EditorState>()((set, get) => {
     send: (from, action, to) => {
       if (get().playback) return;
       const topo = topology();
-      start(topo, sendPacket(topo, from, action, to));
+      start(topo, sendPacket(topo, from, action, to, sendOptions()));
     },
 
     runTerminal: (cmd, from, target) => {
       if (get().playback) return;
       const topo = topology();
-      const { lines, journey } = runCommand(topo, cmd, from, target);
+      const { lines, journey } = runCommand(topo, cmd, from, target, sendOptions());
       const device = topo.device(from).name;
       const typed = `${device}> ${cmd}${target ? ` ${topo.devices.get(target)?.name ?? target}` : ''}`;
       set((s) => ({
@@ -392,6 +420,7 @@ export const useEditor = create<EditorState>()((set, get) => {
           { id: ++lineId, text: typed, kind: 'command' as const },
           ...lines.map((text) => ({ id: ++lineId, text, kind: 'output' as const })),
         ].slice(-200),
+        commandsRun: [...s.commandsRun, { command: cmd, from, at: s.history.length }],
       }));
       playSound('tap');
       if (journey) start(topo, journey, cmd);
@@ -403,6 +432,35 @@ export const useEditor = create<EditorState>()((set, get) => {
     },
 
     closePrintout: () => set({ printout: null }),
+
+    setLinkTeam: (linkId, vlan) => {
+      const { network } = get();
+      const link = network.links.find((l) => l.id === linkId);
+      if (!link) return;
+      setNetwork({
+        ...network,
+        links: network.links.map((l) =>
+          l.id === linkId ? { ...l, vlan: vlan === 1 ? undefined : vlan } : l,
+        ),
+      });
+      playSound('toggle');
+      const sw = network.devices.find((d) => d.id === link.a)?.kind === 'switch' ? link.a : link.b;
+      const other = network.devices.find((d) => d.id === (sw === link.a ? link.b : link.a));
+      if (other) get().say(`${other.name} is now on the ${vlanInfo(vlan).name}!`, 'happy');
+    },
+
+    toggleHelpers: () => {
+      useSettings.getState().toggle('helpers');
+      const on = useSettings.getState().helpers;
+      set({ arpCache: {} });
+      playSound('toggle');
+      get().say(
+        on
+          ? 'Helpers on! Now you can see devices shout "Who has this address?" to find each other.'
+          : "Helpers hidden. They still work, you just can't see them.",
+        'excited',
+      );
+    },
 
     addBuilding: (template, x, y) => {
       const { network } = get();
@@ -472,3 +530,14 @@ export const useEditor = create<EditorState>()((set, get) => {
     },
   };
 });
+
+/** Adds addresses devices found with ARP to their memory. */
+function learn(cache: Record<string, string[]>, learned: Journey['learned']): Record<string, string[]> {
+  if (!learned?.length) return cache;
+  const next = { ...cache };
+  for (const { deviceId, ip } of learned) {
+    const known = next[deviceId] ?? [];
+    if (!known.includes(ip)) next[deviceId] = [...known, ip];
+  }
+  return next;
+}

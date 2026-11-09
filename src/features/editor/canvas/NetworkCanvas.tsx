@@ -9,7 +9,15 @@ import {
 } from '@xyflow/react';
 import '@xyflow/react/dist/style.css';
 import { useEffect, useMemo, useState } from 'react';
-import { CELL_RANGE, DEVICE_SPECS, Topology, WIFI_RANGE, type Device } from '@/core/sim';
+import {
+  CELL_RANGE,
+  DEVICE_SPECS,
+  Topology,
+  WIFI_RANGE,
+  type Device,
+  GUEST_VLAN,
+  vlanInfo,
+} from '@/core/sim';
 import { LAYOUTS } from '@/components/buildings/layouts';
 import { NODE_WIDTH, STEP_MS } from '../actions';
 import { useEditor } from '../editorStore';
@@ -105,7 +113,8 @@ export function NetworkCanvas({ fitKey }: { fitKey: string }) {
       source: l.a,
       target: l.b,
       type: 'network',
-      data: { via: 'cable', linkId: l.id },
+      // Switch sockets painted a team colour (VLAN) show it on the cable.
+      data: { via: 'cable', linkId: l.id, team: l.vlan && l.vlan > 1 ? vlanInfo(l.vlan).color : undefined },
     }));
     const radio: NetworkEdgeType[] = topo.edges
       .filter((e) => e.via !== 'cable')
@@ -114,7 +123,7 @@ export function NetworkCanvas({ fitKey }: { fitKey: string }) {
         source: e.a,
         target: e.b,
         type: 'network',
-        data: { via: e.via },
+        data: { via: e.via, team: e.access === GUEST_VLAN ? vlanInfo(GUEST_VLAN).color : undefined },
       }));
     return [...radio, ...cables];
   }, [network.links, topo]);

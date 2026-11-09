@@ -1,5 +1,6 @@
 import type { Journey } from '@/core/sim';
 import { MissionNet } from './builder';
+import type { Feature } from '../features';
 import type { HistoryEntry, Mission } from './types';
 
 const delivered = (h: HistoryEntry[], pred: (j: Journey) => boolean = () => true) =>
@@ -353,6 +354,31 @@ function twoHouses(
     .link('r2', 'internet');
 }
 
+const COOKIES = { wifiOn: true, ssid: 'Cookies', password: 'grandma1', dhcp: true };
+
+/** Every advanced feature from the first half of Chapter 2. */
+const PHASE_1_FEATURES: Feature[] = ['cell', 'dnsServer', 'terminal', 'dnsNames', 'doors', 'hostGames'];
+
+/** A guest tried to print and the router stopped it. */
+const guestPrintBlocked = (history: HistoryEntry[]) =>
+  history.some((e) => e.journey.action === 'print' && /keeps guests apart/.test(e.journey.message));
+
+/** Index of the last time the router kept Kids' PC away from Parents' PC, or -1. */
+const teamsKeptApart = (history: HistoryEntry[]) =>
+  history.findLastIndex(
+    (e) =>
+      e.journey.from === 'kids' &&
+      e.journey.to === 'parents' &&
+      /keeps different teams/.test(e.journey.message),
+  );
+
+const webAfter = (history: HistoryEntry[], index: number) =>
+  delivered(history.slice(index + 1), (j) => j.from === 'parents' && j.action === 'web');
+
+/** The Computer shouted "who has?" (ARP) at least once. */
+const shouted = (history: HistoryEntry[]) =>
+  history.some((e) => e.journey.from === 'pc' && e.journey.steps.some((s) => s.packet === 'arp'));
+
 /** Chapter 2: Network Pro. Each mission unlocks an advanced feature. */
 const CHAPTER_2: Mission[] = [
   {
@@ -572,6 +598,308 @@ const CHAPTER_2: Mission[] = [
     check: ({ history }) =>
       delivered(history, (j) => j.from === 'friendconsole' && j.to === 'myconsole' && j.action === 'game'),
     lesson: 'When you host a game, friends knock on door 3074. Only open doors for games you trust!',
+  },
+  {
+    id: 'guest-wifi',
+    title: 'Guest WiFi',
+    emoji: '1f465',
+    chapter: 2,
+    minLevel: 9,
+    features: [...PHASE_1_FEATURES, 'guestWifi'],
+    story:
+      "A visitor is here with their tablet, and wants to watch videos. But you don't want visitors poking at your printer and computers! Routers have a trick for this: Guest WiFi.",
+    goal: "Turn on Guest WiFi on the Router. Join the Visitor's Tablet to it and watch a video. Then try to print from it. Guests shouldn't be able to!",
+    hints: [
+      'Tap the Router, open Advanced and switch on Guest WiFi. Remember its name and password.',
+      "Tap the Visitor's Tablet, pick the Guest WiFi, type its password and press Join WiFi.",
+      'Now press "Video", and then "Print", on the tablet.',
+    ],
+    tools: [],
+    setup: () =>
+      new MissionNet()
+        .building('house1', -80, 120, 'Home')
+        .add('router', 'router', 180, 300, {
+          router: { ...TREEHOUSE, guest: { on: false, ssid: 'Visitors', password: 'welcome' } },
+        })
+        .add('printer', 'printer', 0, 470, { name: 'Printer' })
+        .add('tablet', 'visitor', 360, 470, { name: "Visitor's Tablet" })
+        .add('internet', 'internet', 700, 60)
+        .add('videoServer', 'videos', 1000, -40)
+        .link('printer', 'router')
+        .link('router', 'internet')
+        .link('videos', 'internet')
+        .build(),
+    nudge: ({ journey }, history, { topo }) => {
+      if (journey.from !== 'visitor' || journey.outcome !== 'delivered') return undefined;
+      if (journey.action === 'print') {
+        return "Uh oh, the visitor printed on YOUR printer! That's because the tablet is on the family WiFi. Join it to the Guest WiFi instead.";
+      }
+      if (!topo.wifiStatus('visitor').guest) {
+        return 'Videos work, but the visitor is on your family WiFi! Switch on Guest WiFi on the Router and use that instead.';
+      }
+      return guestPrintBlocked(history)
+        ? undefined
+        : "Videos work on the Guest WiFi! Now try to print from the Visitor's Tablet.";
+    },
+    check: ({ history, topo }) =>
+      topo.wifiStatus('visitor').guest === true &&
+      guestPrintBlocked(history) &&
+      delivered(history, (j) => j.from === 'visitor' && j.action === 'video'),
+    lesson:
+      "Guest WiFi is a separate network for visitors. They can use the Internet, but they can't see or touch your own devices.",
+  },
+  {
+    id: 'team-colors',
+    title: 'Team Colours',
+    emoji: '1f3a8',
+    chapter: 2,
+    minLevel: 9,
+    features: [...PHASE_1_FEATURES, 'guestWifi', 'vlans'],
+    story:
+      "Both computers plug into the same switch, so they're neighbours. But the grown-ups want their computer kept separate. A smart switch can put each socket on a different team, called a VLAN!",
+    goal: "Put Parents' PC on the Red team using the Switch. Then check that Kids' PC can't message it, but Parents' PC can still open a website.",
+    hints: [
+      "Tap the Switch, open Advanced, and tap Parents' PC's socket until it's Red.",
+      'Tap Kids\' PC, press "Message" and pick Parents\' PC. It should be stopped!',
+      'Then tap Parents\' PC and press "Website".',
+    ],
+    tools: [],
+    setup: () =>
+      new MissionNet()
+        .building('house2', -80, 20, 'Home')
+        .add('router', 'router', 260, 240, { router: { ...TREEHOUSE } })
+        .add('switch', 'switch', 260, 420)
+        .add('computer', 'kids', 40, 600, { name: "Kids' PC" })
+        .add('computer', 'parents', 480, 600, { name: "Parents' PC" })
+        .add('internet', 'internet', 780, 60)
+        .add('webServer', 'web', 1060, -40)
+        .link('kids', 'switch')
+        .link('parents', 'switch')
+        .link('switch', 'router')
+        .link('router', 'internet')
+        .link('web', 'internet')
+        .build(),
+    nudge: ({ journey }, history) => {
+      if (journey.from === 'kids' && journey.to === 'parents' && journey.outcome === 'delivered') {
+        return "The message got through, so they're still on the same team. Tap the Switch, open Advanced and make Parents' PC's socket Red!";
+      }
+      const apart = teamsKeptApart(history);
+      if (apart >= 0 && !webAfter(history, apart)) {
+        return "Kids' PC can't get in! Now check that Parents' PC can still open a website.";
+      }
+      return undefined;
+    },
+    check: ({ history, topo }) => {
+      const apart = teamsKeptApart(history);
+      return (
+        topo.address('parents').vlan !== topo.address('kids').vlan && apart >= 0 && webAfter(history, apart)
+      );
+    },
+    lesson:
+      "VLANs split one switch into separate teams. Devices on different teams can't talk, unless the router lets them. They can still all use the Internet.",
+  },
+  {
+    id: 'who-has',
+    title: 'Who Has?',
+    emoji: '1f440',
+    chapter: 2,
+    minLevel: 9,
+    features: [...PHASE_1_FEATURES, 'guestWifi', 'vlans', 'arp'],
+    story:
+      "Every device has a secret hardware address called a MAC. Before a computer can talk to a neighbour, it has to find out its MAC. There's a hidden helper that does this. Let's make it visible!",
+    goal: 'Turn on 👀 Helpers, then print from the Computer to the Printer and watch it shout. Then open the Terminal and run arp on the Computer to see what it remembers.',
+    hints: [
+      'Press the 👀 Helpers button at the bottom.',
+      'Tap the Computer and press "Print". Watch the yellow shout go to everyone!',
+      'Open the Terminal, pick arp and the Computer, and press Run.',
+    ],
+    tools: [],
+    setup: () =>
+      new MissionNet()
+        .add('router', 'router', 340, 160, { router: { ...TREEHOUSE, wifiOn: false } })
+        .add('switch', 'switch', 340, 380)
+        .add('computer', 'pc', 60, 540, { name: 'Computer' })
+        .add('printer', 'printer', 620, 540, { name: 'Printer' })
+        .add('laptop', 'laptop', 340, 600, { name: 'Laptop' })
+        .link('router', 'switch')
+        .link('pc', 'switch')
+        .link('printer', 'switch')
+        .link('laptop', 'switch')
+        .build(),
+    nudge: ({ journey }, history) => {
+      if (!shouted(history) && journey.from === 'pc' && journey.outcome === 'delivered') {
+        return 'It worked! But how did the Computer find the Printer? Turn on 👀 Helpers and send it again to see.';
+      }
+      if (shouted(history))
+        return 'Did you see the shout? Now open the Terminal and run arp on the Computer.';
+      return undefined;
+    },
+    check: ({ history, commands }) =>
+      commands.some((c) => c.command === 'arp' && c.from === 'pc' && shouted(history.slice(0, c.at))),
+    lesson:
+      'ARP is how devices find each other: "Who has 192.168.1.12?" The owner answers with its MAC, and the asker remembers it for next time.',
+  },
+  {
+    id: 'reach-home',
+    title: 'Secret Tunnel Home',
+    emoji: '1f510',
+    chapter: 2,
+    minLevel: 10,
+    features: [...PHASE_1_FEATURES, 'guestWifi', 'vlans', 'arp', 'vpn'],
+    story:
+      "You're at Grandma's house and want to print your drawing on the printer at home. But your home Firewall keeps everyone out, even you! A VPN can make a secret tunnel home.",
+    goal: 'Open the VPNs door on your Home Firewall for the Home VPN. Then connect the VPN on Your Laptop and print to the Home Printer!',
+    hints: [
+      'Tap the Home Firewall, open Advanced, and open the VPNs door for the Home VPN.',
+      'Tap Your Laptop, open Advanced, and connect the VPN to the Home VPN.',
+      'Now press "Print" on Your Laptop and pick the Home Printer.',
+    ],
+    tools: [],
+    setup: () =>
+      new MissionNet()
+        .building('house2', -80, 20, 'Home')
+        .building('house1', 1080, 160, "Grandma's house", BLUE_HOUSE)
+        .add('vpnServer', 'homevpn', 40, 300, { name: 'Home VPN' })
+        .add('printer', 'printer', 40, 560, { name: 'Home Printer' })
+        .add('switch', 'switch', 220, 440)
+        .add('router', 'router', 420, 320, { router: { ...TREEHOUSE } })
+        .add('firewall', 'wall', 560, 140, { name: 'Home Firewall' })
+        .add('internet', 'internet', 820, 0)
+        .add('router', 'grandma', 1340, 340, { name: "Grandma's Router", router: { ...COOKIES } })
+        .add('laptop', 'laptop', 1200, 500, {
+          name: 'Your Laptop',
+          wifi: { ssid: 'Cookies', password: 'grandma1' },
+        })
+        .link('homevpn', 'switch')
+        .link('printer', 'switch')
+        .link('switch', 'router')
+        .link('router', 'wall')
+        .link('wall', 'internet')
+        .link('grandma', 'internet')
+        .build(),
+    nudge: ({ journey }) => {
+      if (journey.from !== 'laptop' || journey.action !== 'print') return undefined;
+      if (journey.outcome === 'delivered' && !journey.vpnId) {
+        return 'It printed... but that door lets ANYONE on the Internet print on your printer! Close the Print door and use the VPN tunnel instead.';
+      }
+      if (/reach the VPN server/.test(journey.message)) {
+        return 'The tunnel got stuck at your front door. Open the VPNs door on your Home Firewall for the Home VPN!';
+      }
+      if (!journey.vpnId) {
+        return 'Your Firewall keeps strangers out, and from out here, you look like a stranger! Use the VPN.';
+      }
+      return undefined;
+    },
+    check: ({ history }) =>
+      delivered(history, (j) => j.from === 'laptop' && j.to === 'printer' && j.vpnId === 'homevpn'),
+    lesson:
+      "A VPN makes a secret tunnel through the Internet. Once you're through it, you're inside your home network, even from far away!",
+  },
+  {
+    id: 'hidden-address',
+    title: 'Hidden Address',
+    emoji: '1f575',
+    chapter: 2,
+    minLevel: 10,
+    features: [...PHASE_1_FEATURES, 'guestWifi', 'vlans', 'arp', 'vpn'],
+    story:
+      "Every packet carries a return address, so websites can see where you come from. A VPN on the Internet can hide your home's address!",
+    goal: "Open kidsweb.fun on the Laptop and see which address the website sees. Then connect the Laptop's VPN to Cloud VPN and open it again!",
+    hints: [
+      'Tap the Laptop and press "Website". Read what the website saw.',
+      'Tap the Laptop, open Advanced, and connect the VPN to Cloud VPN.',
+      'Now press "Website" again. Which address did it see this time?',
+    ],
+    tools: [],
+    setup: () =>
+      new MissionNet()
+        .building('house1', -80, 120, 'Home')
+        .add('laptop', 'laptop', 20, 470, {
+          name: 'Laptop',
+          wifi: { ssid: 'Treehouse', password: 'pizza123' },
+        })
+        .add('router', 'router', 200, 300, { router: { ...TREEHOUSE } })
+        .add('internet', 'internet', 660, 60)
+        .add('webServer', 'web', 960, -60)
+        .add('vpnServer', 'cloudvpn', 980, 260, { name: 'Cloud VPN' })
+        .link('router', 'internet')
+        .link('web', 'internet')
+        .link('cloudvpn', 'internet')
+        .build(),
+    nudge: ({ journey }, history) => {
+      if (journey.from !== 'laptop' || journey.outcome !== 'delivered' || journey.action !== 'web')
+        return undefined;
+      if (!journey.vpnId) {
+        return "The website saw your home's address! Now connect the Laptop's VPN to Cloud VPN and try again.";
+      }
+      const plain = delivered(history, (j) => j.from === 'laptop' && j.action === 'web' && !j.vpnId);
+      return plain ? undefined : 'Now switch the VPN off and open it again. Can you spot the difference?';
+    },
+    check: ({ history }) =>
+      delivered(history, (j) => j.from === 'laptop' && j.action === 'web' && !j.vpnId) &&
+      delivered(history, (j) => j.from === 'laptop' && j.action === 'web' && j.vpnId === 'cloudvpn'),
+    lesson:
+      "With a VPN, websites see the VPN server's address instead of yours. It's like giving a letter to a friend, who posts it for you.",
+  },
+  {
+    id: 'tunnel-trick',
+    title: 'Tunnel Trick',
+    emoji: '1f9f3',
+    chapter: 2,
+    minLevel: 10,
+    features: [...PHASE_1_FEATURES, 'guestWifi', 'vlans', 'arp', 'vpn'],
+    story:
+      "The School Firewall blocks games. But a firewall can only see the outside of a VPN tunnel, not what's hiding inside... Let's find out who wins!",
+    goal: "Connect the School PC's VPN and play a game. Then be the network boss: make the School Firewall block VPNs, and try again!",
+    hints: [
+      'Tap the School PC, open Advanced, and connect the VPN to Cloud VPN. Then press "Game".',
+      'Tap the School Firewall and switch on "Block VPNs".',
+      'Press "Game" on the School PC again.',
+    ],
+    tools: [],
+    setup: () =>
+      new MissionNet()
+        .building('office', -80, 40, 'School')
+        .add('computer', 'pc', 40, 460, { name: 'School PC' })
+        .add('router', 'router', 260, 320, { router: { ...ROUTER_OFF } })
+        .add('firewall', 'wall', 480, 160, {
+          name: 'School Firewall',
+          firewall: { blockedApps: ['game'], blockedDevices: [], doors: [] },
+        })
+        .add('internet', 'internet', 760, 20)
+        .add('gameServer', 'games', 1060, -60)
+        .add('vpnServer', 'cloudvpn', 1060, 240, { name: 'Cloud VPN' })
+        .link('pc', 'router')
+        .link('router', 'wall')
+        .link('wall', 'internet')
+        .link('games', 'internet')
+        .link('cloudvpn', 'internet')
+        .build(),
+    nudge: ({ journey }) => {
+      if (journey.from !== 'pc') return undefined;
+      if (journey.outcome === 'blocked' && !journey.vpnId) {
+        return "Blocked! The firewall can see it's a game. What if the game hid inside a VPN tunnel?";
+      }
+      if (journey.outcome === 'delivered' && journey.vpnId && journey.action === 'game') {
+        return "Sneaky! The firewall couldn't see the game inside the tunnel. Now be the network boss: tap the School Firewall, block VPNs, and try again!";
+      }
+      return undefined;
+    },
+    check: ({ history }) => {
+      const sneaked = history.findIndex(
+        (e) =>
+          e.journey.from === 'pc' &&
+          e.journey.vpnId &&
+          e.journey.action === 'game' &&
+          e.journey.outcome === 'delivered',
+      );
+      return (
+        sneaked >= 0 &&
+        history.slice(sneaked + 1).some((e) => e.journey.vpnId && e.journey.outcome === 'blocked')
+      );
+    },
+    lesson:
+      "Firewalls can't see inside a VPN tunnel, so they can't tell what app it is. But they can block VPNs completely!",
   },
 ];
 

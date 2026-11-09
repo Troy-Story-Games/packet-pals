@@ -148,6 +148,15 @@ export const DEVICE_SPECS: Record<DeviceKind, DeviceSpec> = {
     isHost: true,
     isTransparent: false,
   },
+  vpnServer: {
+    label: 'VPN Server',
+    blurb: 'Makes secret tunnels',
+    emoji: '1f510',
+    ports: 1,
+    canWifi: false,
+    isHost: true,
+    isTransparent: false,
+  },
   phone: {
     label: 'Phone',
     blurb: 'WiFi or mobile data',
@@ -255,6 +264,7 @@ export const APP_FOR_ACTION: Record<Action, AppKind> = {
 export const APP_LABELS: Record<AppKind, string> = {
   chat: 'Chat',
   ping: 'Pings',
+  vpn: 'VPNs',
   video: 'Videos',
   game: 'Games',
   web: 'Websites',
@@ -277,7 +287,24 @@ export const DOORS: Record<AppKind, string> = {
   game: '3074',
   ping: 'knock',
   print: '9100',
+  vpn: '1194',
 };
+
+/** The team (VLAN) used by Guest WiFi. */
+export const GUEST_VLAN = 9;
+
+/** Kid-friendly team names and colours for VLANs. */
+export const VLANS: Array<{ id: number; name: string; color: string }> = [
+  { id: 1, name: 'Blue team', color: '#3b82f6' },
+  { id: 2, name: 'Red team', color: '#ef4444' },
+  { id: 3, name: 'Green team', color: '#22c55e' },
+  { id: 4, name: 'Yellow team', color: '#eab308' },
+  { id: GUEST_VLAN, name: 'Guests', color: '#a855f7' },
+];
+
+export function vlanInfo(id: number | undefined): { id: number; name: string; color: string } {
+  return VLANS.find((v) => v.id === (id ?? 1)) ?? VLANS[0];
+}
 
 /** WiFi reaches this far (canvas units) from a router. */
 export const WIFI_RANGE = 340;
@@ -287,5 +314,11 @@ export const CELL_RANGE = 900;
 
 /** Servers that live on the Internet by default and answer to a name. */
 export function isServer(kind: DeviceKind): boolean {
-  return kind === 'videoServer' || kind === 'gameServer' || kind === 'webServer' || kind === 'dnsServer';
+  return (
+    kind === 'videoServer' ||
+    kind === 'gameServer' ||
+    kind === 'webServer' ||
+    kind === 'dnsServer' ||
+    kind === 'vpnServer'
+  );
 }

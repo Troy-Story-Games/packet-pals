@@ -36,6 +36,7 @@ export function rewardWifiJoin(): void {
 export function rewardJourney(journey: Journey, kindsOnPath: DeviceKind[], hubShout: boolean): void {
   const p = useProgress.getState();
   if (hubShout) p.bumpStat('hubShouts');
+  if (journey.steps.some((s) => s.packet === 'arp')) p.bumpStat('arpShouts');
   if (journey.outcome === 'blocked') {
     p.bumpStat('packetsBlocked');
     return;
@@ -45,5 +46,6 @@ export function rewardJourney(journey: Journey, kindsOnPath: DeviceKind[], hubSh
   if (kindsOnPath.includes('internet')) p.bumpStat('internetTrips');
   if (journey.action === 'game') p.bumpStat('gamesPlayed');
   if (journey.action === 'print') p.bumpStat('printsDone');
+  if (journey.vpnId) p.bumpStat('tunnelTrips');
   if (capped('packet')) p.addXp(kindsOnPath.includes('internet') ? 5 : 3, 'Packet delivered!');
 }

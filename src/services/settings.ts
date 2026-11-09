@@ -7,7 +7,9 @@ interface SettingsState {
   music: boolean;
   /** Read explanations aloud automatically when a new step appears. */
   autoSpeak: boolean;
-  toggle: (key: 'sfx' | 'music' | 'autoSpeak') => void;
+  /** Show the hidden helpers (ARP "who has?" shouts) once unlocked. */
+  helpers: boolean;
+  toggle: (key: 'sfx' | 'music' | 'autoSpeak' | 'helpers') => void;
 }
 
 export const useSettings = create<SettingsState>()(
@@ -16,6 +18,7 @@ export const useSettings = create<SettingsState>()(
       sfx: true,
       music: false,
       autoSpeak: false,
+      helpers: false,
       toggle: (key) => set((s) => ({ [key]: !s[key] })),
     }),
     { name: 'kidsdn-settings', storage: persistStorage },

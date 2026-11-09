@@ -11,6 +11,10 @@ export interface Stats {
   /** Most devices ever in the sandbox at once. */
   biggestNetwork: number;
   printsDone: number;
+  /** Packets that travelled through a VPN tunnel. */
+  tunnelTrips: number;
+  /** "Who has?" (ARP) shouts seen. */
+  arpShouts: number;
 }
 
 export type StatKey = keyof Stats;
@@ -26,4 +30,6 @@ export const EMPTY_STATS: Stats = {
   hubShouts: 0,
   biggestNetwork: 0,
   printsDone: 0,
+  tunnelTrips: 0,
+  arpShouts: 0,
 };

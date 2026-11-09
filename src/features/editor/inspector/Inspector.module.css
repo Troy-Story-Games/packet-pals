@@ -266,3 +266,45 @@
 .swatchActive {
   box-shadow: 0 0 0 4px var(--ink);
 }
+
+.socket {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-weight: 600;
+}
+
+.socket span:first-child {
+  flex: 1;
+}
+
+.teamPill {
+  min-width: 112px;
+  min-height: 44px;
+  padding: 6px 12px;
+  border: 3px solid rgb(0 0 0 / 0.15);
+  border-radius: 999px;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  text-align: center;
+  text-shadow: 0 1px 2px rgb(0 0 0 / 0.35);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.allTeams {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(90deg, #3b82f6, #ef4444, #22c55e, #eab308);
+  cursor: default;
+}
+
+.teamDot {
+  display: inline-block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  vertical-align: -2px;
+}

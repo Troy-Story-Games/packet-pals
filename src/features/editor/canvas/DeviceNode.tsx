@@ -82,6 +82,11 @@ export function DeviceNode({ id, data }: NodeProps<DeviceNodeType>) {
           <Emoji code="1f4f6" size={16} /> {device.router.ssid}
         </div>
       )}
+      {device.kind === 'router' && device.router?.guest?.on && device.router.guest.ssid && (
+        <div className={`${styles.ssid} ${styles.guestSsid}`}>
+          <Emoji code="1f465" size={16} /> {device.router.guest.ssid}
+        </div>
+      )}
 
       <AnimatePresence>
         {reaction && (

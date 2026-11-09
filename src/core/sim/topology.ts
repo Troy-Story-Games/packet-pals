@@ -1,4 +1,4 @@
-import { CELL_RANGE, DEVICE_SPECS, isServer, WIFI_RANGE } from './devices';
+import { CELL_RANGE, DEVICE_SPECS, GUEST_VLAN, isServer, WIFI_RANGE } from './devices';
 import type { Address, Device, Edge, Network, WifiStatus } from './types';
 
 /**
@@ -18,6 +18,7 @@ export class Topology {
   private readonly frontDoors = new Map<string, string>();
   /** Router id → its LAN subnet prefix, e.g. "192.168.1". */
   readonly subnets = new Map<string, string>();
+  private readonly routerIndex = new Map<string, number>();
 
   constructor(readonly network: Network) {
     for (const d of network.devices) {
@@ -72,7 +73,11 @@ export class Topology {
   /** Routers whose WiFi `device` can currently hear. */
   networksInRange(device: Device): Device[] {
     return this.network.devices.filter(
-      (r) => r.kind === 'router' && r.powered && r.router?.wifiOn && distance(r, device) <= WIFI_RANGE,
+      (r) =>
+        r.kind === 'router' &&
+        r.powered &&
+        (r.router?.wifiOn || r.router?.guest?.on) &&
+        distance(r, device) <= WIFI_RANGE,
     );
   }
 
@@ -95,7 +100,9 @@ export class Topology {
     for (const link of this.network.links) {
       const a = this.devices.get(link.a);
       const b = this.devices.get(link.b);
-      if (a?.powered && b?.powered) this.addEdge({ a: a.id, b: b.id, via: 'cable', linkId: link.id });
+      if (a?.powered && b?.powered) {
+        this.addEdge({ a: a.id, b: b.id, via: 'cable', linkId: link.id, ...cableTeams(a, b, link.vlan) });
+      }
     }
 
     for (const d of this.network.devices) {
@@ -110,22 +117,30 @@ export class Topology {
       const status = this.joinWifi(d);
       this.wifi.set(d.id, status);
       if (status.state === 'connected' && status.routerId)
-        this.addEdge({ a: d.id, b: status.routerId, via: 'wifi' });
+        this.addEdge({ a: d.id, b: status.routerId, via: 'wifi', access: status.guest ? GUEST_VLAN : 1 });
     }
   }
 
   private joinWifi(d: Device): WifiStatus {
     if (!d.powered || !d.wifi) return { state: 'none' };
-    const named = this.network.devices.filter(
-      (r) => r.kind === 'router' && r.powered && r.router?.wifiOn && r.router.ssid === d.wifi!.ssid,
-    );
-    if (named.length === 0) return { state: 'noSuchNetwork' };
-    const inRange = named.filter((r) => distance(r, d) <= WIFI_RANGE);
-    if (inRange.length === 0) return { state: 'outOfRange', routerId: named[0].id };
-    const match = inRange.find((r) => r.router!.password === d.wifi!.password);
+    const ssid = d.wifi.ssid;
+    // A router can offer its main WiFi and a separate Guest WiFi.
+    const offers = this.network.devices.flatMap((r) => {
+      if (r.kind !== 'router' || !r.powered || !r.router) return [];
+      const list: Array<{ router: Device; password: string; guest: boolean }> = [];
+      if (r.router.wifiOn && r.router.ssid === ssid)
+        list.push({ router: r, password: r.router.password, guest: false });
+      const guest = r.router.guest;
+      if (guest?.on && guest.ssid === ssid) list.push({ router: r, password: guest.password, guest: true });
+      return list;
+    });
+    if (offers.length === 0) return { state: 'noSuchNetwork' };
+    const inRange = offers.filter((o) => distance(o.router, d) <= WIFI_RANGE);
+    if (inRange.length === 0) return { state: 'outOfRange', routerId: offers[0].router.id };
+    const match = inRange.find((o) => o.password === d.wifi!.password);
     return match
-      ? { state: 'connected', routerId: match.id }
-      : { state: 'wrongPassword', routerId: inRange[0].id };
+      ? { state: 'connected', routerId: match.router.id, guest: match.guest }
+      : { state: 'wrongPassword', routerId: inRange[0].router.id };
   }
 
   private joinCell(d: Device): CellStatus {
@@ -191,25 +206,42 @@ export class Topology {
    * Returns the device ids including both ends, or null.
    */
   localPath(from: string, to: string): string[] | null {
-    if (from === to) return [from];
-    // State is (device, previous device) because routers care where a frame came from.
-    const start = { id: from, prev: undefined as string | undefined, path: [from] };
-    const seen = new Set<string>([`${from}|`]);
-    const queue = [start];
+    return this.localRoute(from, to)?.path ?? null;
+  }
+
+  /**
+   * Like localPath, also returning the team (VLAN) the frame travelled on.
+   * A frame picks up its team at the first one-team socket it passes and can
+   * then only use sockets of that team, or ones that carry every team.
+   */
+  localRoute(from: string, to: string): { path: string[]; vlan: number | null } | null {
+    if (from === to) return { path: [from], vlan: null };
+    // State is (device, previous device, team) because routers care where a frame came from.
+    type State = { id: string; prev?: string; vlan: number | null; path: string[] };
+    const seen = new Set<string>([`${from}||`]);
+    const queue: State[] = [{ id: from, vlan: null, path: [from] }];
     while (queue.length) {
-      const { id, prev, path } = queue.shift()!;
+      const { id, prev, vlan, path } = queue.shift()!;
       for (const e of this.neighbours(id)) {
         const n = this.other(e, id);
         if (path.includes(n)) continue;
         if (id !== from && !this.canPassThrough(id, prev, n)) continue;
-        if (n === to) return [...path, n];
-        const key = `${n}|${id}`;
+        const next = nextVlan(vlan, e);
+        if (next === BLOCKED) continue;
+        if (n === to) return { path: [...path, n], vlan: next };
+        const key = `${n}|${id}|${next}`;
         if (seen.has(key)) continue;
         seen.add(key);
-        queue.push({ id: n, prev: id, path: [...path, n] });
+        queue.push({ id: n, prev: id, vlan: next, path: [...path, n] });
       }
     }
     return null;
+  }
+
+  /** The address prefix a router uses for one team, e.g. 192.168.1 (Blue) or 192.168.12 (Red). */
+  subnetFor(routerId: string, vlan: number | null | undefined): string {
+    const index = this.routerIndex.get(routerId) ?? 1;
+    return !vlan || vlan === 1 ? `192.168.${index}` : `192.168.${index * 10 + vlan}`;
   }
 
   /** Every device reachable on the local network from `id` (its "neighbourhood"). */
@@ -221,7 +253,10 @@ export class Topology {
 
   private assignAddresses(): void {
     const routers = this.network.devices.filter((d) => d.kind === 'router');
-    routers.forEach((r, i) => this.subnets.set(r.id, `192.168.${i + 1}`));
+    routers.forEach((r, i) => {
+      this.routerIndex.set(r.id, i + 1);
+      this.subnets.set(r.id, `192.168.${i + 1}`);
+    });
 
     const internet = this.internetId();
     let publicHost = 10;
@@ -270,21 +305,27 @@ export class Topology {
         continue;
       }
 
+      // Which team the device reaches each router on decides its neighbourhood there.
+      const teamAt = (routerId: string) => this.localRoute(d.id, routerId)?.vlan ?? 1;
+
       if (d.staticIp) {
-        const gw = gateways.find((g) => d.staticIp!.startsWith(`${this.subnets.get(g)}.`));
-        this.addresses.set(d.id, { ip: d.staticIp, source: 'static', gatewayId: gw });
+        const gw = gateways.find((g) => d.staticIp!.startsWith(`${this.subnetFor(g, teamAt(g))}.`));
+        this.addresses.set(d.id, {
+          ip: d.staticIp,
+          source: 'static',
+          gatewayId: gw,
+          vlan: gw ? teamAt(gw) : undefined,
+        });
         continue;
       }
 
       const dhcp = gateways.find((g) => this.device(g).router?.dhcp);
       if (dhcp) {
-        const next = leaseCounters.get(dhcp) ?? 10;
-        leaseCounters.set(dhcp, next + 1);
-        this.addresses.set(d.id, {
-          ip: `${this.subnets.get(dhcp)}.${next}`,
-          source: 'dhcp',
-          gatewayId: dhcp,
-        });
+        const vlan = teamAt(dhcp);
+        const subnet = this.subnetFor(dhcp, vlan);
+        const next = leaseCounters.get(subnet) ?? 10;
+        leaseCounters.set(subnet, next + 1);
+        this.addresses.set(d.id, { ip: `${subnet}.${next}`, source: 'dhcp', gatewayId: dhcp, vlan });
       } else {
         // No one hands out addresses, so the device makes one up (link-local, like real computers do).
         this.addresses.set(d.id, {
@@ -319,6 +360,35 @@ export class Topology {
   edgeBetween(a: string, b: string): Edge | undefined {
     return this.neighbours(a).find((e) => this.other(e, a) === b);
   }
+}
+
+const BLOCKED = -1;
+
+/** The team a frame is on after crossing `edge`, or BLOCKED if it may not cross. */
+function nextVlan(vlan: number | null, edge: Edge): number | null {
+  if (edge.access === undefined) return vlan;
+  if (vlan === null || vlan === edge.access) return edge.access;
+  return BLOCKED;
+}
+
+/**
+ * Which teams a cable carries. A cable into a switch from a device carries that
+ * socket's team; switch-to-switch and switch-to-router cables carry them all.
+ * A device cabled straight into a router is on the Blue team (1).
+ */
+function cableTeams(a: Device, b: Device, vlan: number | undefined): Pick<Edge, 'access' | 'trunk'> {
+  const kinds = [a.kind, b.kind];
+  if (kinds.includes('switch')) {
+    const other = a.kind === 'switch' ? b : a;
+    if (['switch', 'router', 'firewall'].includes(other.kind)) return { trunk: true };
+    return { access: vlan ?? 1 };
+  }
+  if (kinds.includes('router')) {
+    const other = a.kind === 'router' ? b : a;
+    if (['internet', 'firewall', 'router'].includes(other.kind)) return {};
+    return { access: 1 };
+  }
+  return {};
 }
 
 export interface CellStatus {

@@ -12,7 +12,7 @@
 }
 
 .cable {
-  stroke: #64748b !important;
+  stroke: var(--team, #64748b) !important;
   stroke-width: 6px !important;
   stroke-linecap: round;
 }
@@ -23,7 +23,7 @@
 }
 
 .wifi {
-  stroke: var(--wifi) !important;
+  stroke: var(--team, var(--wifi)) !important;
   stroke-width: 4px !important;
   stroke-dasharray: 2 12;
   stroke-linecap: round;

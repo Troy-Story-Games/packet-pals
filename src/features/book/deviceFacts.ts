@@ -54,6 +54,10 @@ export const DEVICE_FACTS: Record<DeviceKind, { what: string; fact: string }> = 
     what: 'A computer far away that sends you websites.',
     fact: 'Web servers never sleep. They answer requests day and night!',
   },
+  vpnServer: {
+    what: 'Makes a secret tunnel. Your packets travel inside it, and come out at the VPN server.',
+    fact: 'Websites see the VPN server, not you. People use VPNs to reach home from far away!',
+  },
   dnsServer: {
     what: 'The phone book of the Internet. It turns names like videos.fun into addresses.',
     fact: 'Your device asks a DNS server for help almost every time you open a website!',
