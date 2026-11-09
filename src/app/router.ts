@@ -12,7 +12,8 @@ export type Route =
   | { name: 'sandbox'; shared: string | null }
   | { name: 'book' }
   | { name: 'trophies' }
-  | { name: 'credits' };
+  | { name: 'credits' }
+  | { name: 'about' };
 
 export function parseRoute(hash: string): Route {
   const [path, query = ''] = hash.replace(/^#\/?/, '').split('?');
@@ -25,6 +26,7 @@ export function parseRoute(hash: string): Route {
     case 'book':
     case 'trophies':
     case 'credits':
+    case 'about':
       return { name: first };
     default:
       return { name: 'home' };

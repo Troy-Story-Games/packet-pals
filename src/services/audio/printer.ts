@@ -1,3 +1,4 @@
+import { SFX_MASTER } from './sfx';
 import { useSettings } from '../settings';
 import { getAudioContext } from './context';
 
@@ -10,7 +11,7 @@ export function playPrinter(): void {
   const ctx = getAudioContext();
   const now = ctx.currentTime;
   const out = ctx.createGain();
-  out.gain.value = 0.35;
+  out.gain.value = 0.35 * SFX_MASTER;
   out.connect(ctx.destination);
 
   const motor = ctx.createOscillator();

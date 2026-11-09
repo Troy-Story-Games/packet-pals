@@ -84,3 +84,11 @@
     font-size: 0.9rem;
   }
 }
+
+.done {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  color: var(--good, #16a34a);
+}

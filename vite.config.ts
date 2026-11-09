@@ -17,8 +17,8 @@ export default defineConfig({
       injectRegister: null,
       includeAssets: ['favicon.svg', 'apple-touch-icon.png'],
       manifest: {
-        name: 'Kid SDN',
-        short_name: 'Kid SDN',
+        name: 'Packet Pals',
+        short_name: 'Packet Pals',
         description: 'Build networks with computers, WiFi, routers and firewalls, then watch packets fly!',
         theme_color: '#2563eb',
         background_color: '#eaf4ff',

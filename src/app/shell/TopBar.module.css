@@ -93,7 +93,20 @@
   .logo {
     display: none;
   }
-  .toggles :global(button):last-child {
-    display: none;
+  /* Smaller buttons so the sound AND music toggles both fit on phones. */
+  .bar {
+    --tap: 44px;
+    gap: 6px;
+    padding: 8px 10px;
+  }
+  .toggles {
+    gap: 6px;
+  }
+  .player {
+    padding-right: 8px;
+  }
+  .levelBadge {
+    width: 34px;
+    height: 34px;
   }
 }

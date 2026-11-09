@@ -187,3 +187,65 @@ test('a laptop can connect to a VPN server', async ({ page }) => {
   await page.getByRole('button', { name: 'Home VPN', exact: true }).click();
   await expect(page.getByText(/Using the VPN/)).toBeVisible();
 });
+
+test('Who Has? waits for the arp output, then lets you stay and go on later', async ({ page }) => {
+  test.setTimeout(90_000);
+  await progress(page, [...CHAPTER_2, 'guest-wifi', 'team-colors']);
+  await page.goto('./#/missions/who-has');
+  await dismissRewards(page);
+  await page.getByRole('button', { name: 'Helpers' }).click();
+  await device(page, 'Computer').click();
+  await page.getByRole('button', { name: 'Print', exact: true }).click();
+  await page.getByRole('button', { name: 'Printer', exact: true }).first().click();
+  await page.getByRole('button', { name: 'Cool!' }).click({ timeout: 30_000 });
+  // New badges (Neighbour Finder) pop up once the printout is closed.
+  await page.waitForTimeout(2000);
+  await dismissRewards(page);
+  // Pip kept every message from that trip.
+  await expect(page.getByRole('button', { name: 'Previous message' })).toBeEnabled();
+  await page.getByRole('button', { name: 'Previous message' }).click();
+  await expect(page.getByRole('button', { name: 'Next message' })).toBeEnabled();
+
+  await page.getByRole('button', { name: 'Terminal' }).click();
+  const terminal = page.getByRole('dialog', { name: 'Terminal' });
+  await terminal.getByRole('button', { name: 'arp' }).click();
+  await terminal.getByRole('button', { name: 'Computer' }).click();
+  await terminal.getByRole('button', { name: /Run/ }).click();
+  await expect(terminal.getByText(/knows these neighbours/)).toBeVisible();
+  // The card waits so the output can be read first.
+  const card = page.getByRole('dialog', { name: 'Mission complete' });
+  await page.waitForTimeout(2000);
+  await expect(card).toBeHidden();
+  await page.getByRole('button', { name: 'Stay here' }).click({ timeout: 10_000 });
+  await expect(card).toBeHidden();
+  await expect(terminal.getByText(/knows these neighbours/)).toBeVisible();
+  await page.getByRole('button', { name: /Next mission/ }).click();
+  await expect(page).toHaveURL(/#\/missions\/reach-home/);
+});
+
+test('the top bar keeps the music button on every screen size', async ({ page }) => {
+  await page.goto('./');
+  await expect(page.getByRole('button', { name: /Turn music/ })).toBeVisible();
+  await expect(page.getByRole('button', { name: /Turn sounds/ })).toBeVisible();
+});
+
+test('About shows who made it and where the code lives', async ({ page }) => {
+  await page.goto('./');
+  await page.getByRole('button', { name: 'About', exact: true }).click();
+  await expect(page.getByRole('button', { name: 'TroyStoryGames' })).toBeVisible();
+  await expect(page.getByRole('button', { name: 'See the code on GitHub' })).toBeVisible();
+  await expect(page.getByText(/Version \d+\.\d+\.\d+/)).toBeVisible();
+});
+
+test('an Install button appears when the browser offers installing', async ({ page }) => {
+  await page.goto('./');
+  await expect(page.getByRole('button', { name: /Install app/ })).toHaveCount(0);
+  await page.evaluate(() => {
+    const offer = Object.assign(new Event('beforeinstallprompt', { cancelable: true }), {
+      prompt: async () => {},
+      userChoice: Promise.resolve({ outcome: 'dismissed' }),
+    });
+    window.dispatchEvent(offer);
+  });
+  await expect(page.getByRole('button', { name: /Install app/ })).toBeVisible();
+});

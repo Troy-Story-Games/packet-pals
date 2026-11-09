@@ -1,6 +1,7 @@
 import { motion } from 'motion/react';
 import { navigate } from '@/app/router';
 import { Emoji } from '@/components/Emoji';
+import { InstallButton } from '@/components/InstallButton';
 import { KidButton } from '@/components/KidButton';
 import { Page } from '@/components/Page';
 import { Mascot } from '@/components/pip/Mascot';
@@ -84,6 +85,10 @@ export function HomeScreen() {
       </div>
 
       <div className={styles.footer}>
+        <InstallButton />
+        <KidButton variant="ghost" onClick={() => navigate('about')}>
+          About
+        </KidButton>
         <KidButton variant="ghost" onClick={() => navigate('credits')}>
           Credits & thanks
         </KidButton>

@@ -21,13 +21,16 @@ interface EditorViewProps {
 /** The full network-building workspace shared by missions and the sandbox. */
 export function EditorView({ header, fitKey }: EditorViewProps) {
   const pip = useEditor((s) => s.pip);
+  const pipLog = useEditor((s) => s.pipLog);
+  const pipLogId = useEditor((s) => s.pipLogId);
   const terminalOpen = useEditor((s) => s.terminalOpen);
   return (
     <ReactFlowProvider>
       <div className={styles.editor}>
         <div className={styles.top}>
           <div className={styles.pip}>
-            <Mascot mood={pip.mood} says={pip.says} size={84} compact />
+            {/* Keyed by log so paging starts at the newest message for each new action. */}
+            <Mascot key={pipLogId} mood={pip.mood} says={pip.says} history={pipLog} size={84} compact />
           </div>
           {header}
         </div>

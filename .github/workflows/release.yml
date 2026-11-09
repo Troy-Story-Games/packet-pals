@@ -8,7 +8,17 @@ permissions:
   contents: write
 
 jobs:
+  # One draft release that every platform uploads to, so the builds don't race to create it.
+  draft:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Create draft release
+        run: gh release create "$GITHUB_REF_NAME" --draft --generate-notes --title "$GITHUB_REF_NAME" --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
   build:
+    needs: draft
     strategy:
       fail-fast: false
       matrix:
@@ -27,9 +37,18 @@ jobs:
         run: npm version "${GITHUB_REF_NAME#v}" --no-git-tag-version --allow-same-version
       - run: npm run build
       - run: npm run electron:compile
-      - name: Build and publish installers
+      - name: Build installers and upload them to the draft
         run: npx electron-builder --publish always
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           # Unsigned builds; skip macOS signing lookups in CI.
           CSC_IDENTITY_AUTO_DISCOVERY: false
+
+  publish:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Publish the release
+        run: gh release edit "$GITHUB_REF_NAME" --draft=false --latest --repo "$GITHUB_REPOSITORY"
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -14,6 +14,10 @@ import { burstConfetti } from '@/services/effects/confetti';
 import { GoalCard } from './GoalCard';
 import { MissionComplete } from './MissionComplete';
 
+/** Pause before the "mission complete" card, so results can be read first. */
+const READ_RESULT_MS = 1500;
+const READ_COMMAND_MS = 4000;
+
 export function MissionScreen({ missionId }: { missionId: string }) {
   const mission = missionById(missionId);
   const index = MISSIONS.findIndex((m) => m.id === missionId);
@@ -30,6 +34,8 @@ export function MissionScreen({ missionId }: { missionId: string }) {
   const [attempt, setAttempt] = useState(0);
   const [hintsUsed, setHintsUsed] = useState(0);
   const [result, setResult] = useState<{ stars: number; seconds: number } | null>(null);
+  // "Stay here" closes the card but keeps the finished network on screen.
+  const [stayed, setStayed] = useState(false);
   const playerLevel = useLevel();
   const unlocked = index >= 0 && isMissionUnlocked(index, progress, playerLevel);
 
@@ -47,6 +53,7 @@ export function MissionScreen({ missionId }: { missionId: string }) {
   const restart = () => {
     setHintsUsed(0);
     setResult(null);
+    setStayed(false);
     setAttempt((a) => a + 1);
   };
 
@@ -63,17 +70,23 @@ export function MissionScreen({ missionId }: { missionId: string }) {
       const tip = mission.nudge?.(history[history.length - 1], history, ctx);
       if (!tip) return;
       nudgedAt.current = history.length;
-      const timer = window.setTimeout(() => useEditor.getState().say(tip, 'think'), 2500);
+      const timer = window.setTimeout(() => useEditor.getState().say(tip, 'think', { append: true }), 2500);
       return () => window.clearTimeout(timer);
     }
     const seconds = Math.round((performance.now() - startedAt) / 1000);
     const stars = missionStars(mission, hintsUsed, useEditor.getState().failures, seconds);
-    const timer = window.setTimeout(() => {
-      setResult({ stars, seconds });
-      completeMission(mission.id, stars);
-      playSound('jingleWin');
-      burstConfetti();
-    }, 900);
+    // Give the kid time to read what just happened: longer after terminal output.
+    const lastCommand = commands.at(-1);
+    const afterCommand = lastCommand !== undefined && lastCommand.at >= history.length - 1;
+    const timer = window.setTimeout(
+      () => {
+        setResult({ stars, seconds });
+        completeMission(mission.id, stars);
+        playSound('jingleWin');
+        burstConfetti();
+      },
+      afterCommand ? READ_COMMAND_MS : READ_RESULT_MS,
+    );
     return () => window.clearTimeout(timer);
   }, [
     mission,
@@ -114,6 +127,11 @@ export function MissionScreen({ missionId }: { missionId: string }) {
             number={index + 1}
             hintsUsed={hintsUsed}
             running={!result}
+            done={
+              result && stayed
+                ? { stars: result.stars, onNext: next ? () => navigate(`missions/${next.id}`) : undefined }
+                : undefined
+            }
             startedAt={startedAt}
             onHint={() => {
               const hint = mission.hints[Math.min(hintsUsed, mission.hints.length - 1)];
@@ -126,7 +144,8 @@ export function MissionScreen({ missionId }: { missionId: string }) {
         }
       />
       <MissionComplete
-        open={result !== null}
+        open={result !== null && !stayed}
+        onStay={() => setStayed(true)}
         mission={mission}
         stars={result?.stars ?? 0}
         seconds={result?.seconds ?? 0}

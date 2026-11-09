@@ -58,7 +58,7 @@ export function SandboxScreen({ shared }: { shared: string | null }) {
     if (!file) return;
     const network = await readNetworkFile(file);
     if (network) load(network, 'Network loaded!');
-    else useEditor.getState().say("Hmm, that file isn't a Kid SDN network.", 'sad');
+    else useEditor.getState().say("Hmm, that file isn't a Packet Pals network.", 'sad');
   };
 
   return (

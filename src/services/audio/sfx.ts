@@ -65,6 +65,9 @@ export interface PlayOptions {
   rate?: number;
 }
 
+/** Overall loudness of sound effects, so they sit under the music and speech. */
+export const SFX_MASTER = 0.55;
+
 /** Plays a sound effect unless sound effects are muted. */
 export function playSound(name: SoundName, { volume = 0.6, rate = 1 }: PlayOptions = {}): void {
   if (!useSettings.getState().sfx) return;
@@ -75,7 +78,7 @@ export function playSound(name: SoundName, { volume = 0.6, rate = 1 }: PlayOptio
     source.buffer = buffer;
     source.playbackRate.value = rate;
     const gain = ctx.createGain();
-    gain.gain.value = volume;
+    gain.gain.value = volume * SFX_MASTER;
     source.connect(gain).connect(ctx.destination);
     source.start();
   });

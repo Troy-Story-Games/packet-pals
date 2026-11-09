@@ -14,10 +14,20 @@ interface MissionCompleteProps {
   seconds: number;
   onReplay: () => void;
   onNext?: () => void;
+  /** Close the card and keep looking at the finished network. */
+  onStay: () => void;
 }
 
 /** The "you did it!" card with stars and what the kid just learned. */
-export function MissionComplete({ open, mission, stars, seconds, onReplay, onNext }: MissionCompleteProps) {
+export function MissionComplete({
+  open,
+  mission,
+  stars,
+  seconds,
+  onReplay,
+  onNext,
+  onStay,
+}: MissionCompleteProps) {
   // Level-ups and badges from finishing the mission show after this card is closed.
   useCelebrationHold(open);
   return (
@@ -33,6 +43,9 @@ export function MissionComplete({ open, mission, stars, seconds, onReplay, onNex
         <Mascot mood="excited" says={mission.lesson} size={80} compact />
       </div>
       <div style={{ display: 'flex', gap: 12, justifyContent: 'center', flexWrap: 'wrap' }}>
+        <KidButton variant="secondary" onClick={onStay}>
+          Stay here
+        </KidButton>
         <KidButton variant="secondary" onClick={onReplay}>
           Play again
         </KidButton>

@@ -3,6 +3,7 @@ import { navigate } from '@/app/router';
 import { Emoji } from '@/components/Emoji';
 import { KidButton } from '@/components/KidButton';
 import { SpeakButton } from '@/components/SpeakButton';
+import { Stars } from '@/components/Stars';
 import type { Mission } from '@/game/missions/types';
 import styles from './GoalCard.module.css';
 
@@ -14,6 +15,8 @@ interface GoalCardProps {
   startedAt: number;
   onHint: () => void;
   onRestart: () => void;
+  /** Set once the mission is finished and the kid chose to stay on the network. */
+  done?: { stars: number; onNext?: () => void };
 }
 
 /** The mission's goal, a hint button, and the clock for timed missions. */
@@ -25,6 +28,7 @@ export function GoalCard({
   startedAt,
   onHint,
   onRestart,
+  done,
 }: GoalCardProps) {
   const seconds = useStopwatch(Boolean(mission.timeLimit) && running, startedAt);
   const left = mission.timeLimit ? Math.max(0, mission.timeLimit - seconds) : 0;
@@ -47,17 +51,37 @@ export function GoalCard({
         <p>{mission.goal}</p>
         <SpeakButton text={mission.goal} />
       </div>
-      <div className={styles.buttons}>
-        <KidButton variant="gold" onClick={onHint} sound={null}>
-          <Emoji code="1f4a1" /> Hint{hintsUsed > 0 ? ` (${hintsUsed})` : ''}
-        </KidButton>
-        <KidButton variant="secondary" onClick={onRestart}>
-          Start over
-        </KidButton>
-        <KidButton variant="secondary" onClick={() => navigate('missions')}>
-          <Emoji code="1f5fa" /> Map
-        </KidButton>
-      </div>
+      {done ? (
+        <div className={styles.buttons}>
+          <span className={styles.done}>
+            Mission complete! <Stars count={done.stars} size={26} />
+          </span>
+          {done.onNext ? (
+            <KidButton variant="good" onClick={done.onNext}>
+              Next mission ➜
+            </KidButton>
+          ) : (
+            <KidButton variant="good" onClick={() => navigate('sandbox')}>
+              <Emoji code="1f3d7" /> Build anything!
+            </KidButton>
+          )}
+          <KidButton variant="secondary" onClick={onRestart}>
+            Play again
+          </KidButton>
+        </div>
+      ) : (
+        <div className={styles.buttons}>
+          <KidButton variant="gold" onClick={onHint} sound={null}>
+            <Emoji code="1f4a1" /> Hint{hintsUsed > 0 ? ` (${hintsUsed})` : ''}
+          </KidButton>
+          <KidButton variant="secondary" onClick={onRestart}>
+            Start over
+          </KidButton>
+          <KidButton variant="secondary" onClick={() => navigate('missions')}>
+            <Emoji code="1f5fa" /> Map
+          </KidButton>
+        </div>
+      )}
     </div>
   );
 }

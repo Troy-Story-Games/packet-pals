@@ -32,7 +32,7 @@ export function TrophiesScreen() {
     const blob = new Blob([JSON.stringify(exportSave(), null, 2)], { type: 'application/json' });
     const link = document.createElement('a');
     link.href = URL.createObjectURL(blob);
-    link.download = 'kid-sdn-save.json';
+    link.download = 'packet-pals-save.json';
     link.click();
     URL.revokeObjectURL(link.href);
   };
@@ -129,7 +129,7 @@ export function TrophiesScreen() {
             Start over
           </KidButton>
         </div>
-        {importError && <p className={styles.error}>That file isn't a Kid SDN save.</p>}
+        {importError && <p className={styles.error}>That file isn't a Packet Pals save.</p>}
       </Panel>
 
       <GrownUpGate

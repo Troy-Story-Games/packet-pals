@@ -31,7 +31,7 @@ export function downloadNetwork(network: Network): void {
   const blob = new Blob([JSON.stringify(exportNetwork(network), null, 1)], { type: 'application/json' });
   const link = document.createElement('a');
   link.href = URL.createObjectURL(blob);
-  link.download = 'my-network.kidsdn.json';
+  link.download = 'my-network.packetpals.json';
   link.click();
   URL.revokeObjectURL(link.href);
 }

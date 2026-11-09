@@ -74,6 +74,10 @@ interface EditorState {
   tool: Tool;
   cableFrom: string | null;
   pip: { says: string; mood: PipMood };
+  /** Everything Pip said for the latest action (a packet's trip, a tap...), oldest first. */
+  pipLog: string[];
+  /** Changes whenever a new action starts a fresh log. */
+  pipLogId: number;
   playback: Playback | null;
   reaction: DeviceReaction | null;
   history: HistoryEntry[];
@@ -104,7 +108,11 @@ interface EditorState {
   select: (id: string | null) => void;
   updateDevice: (id: string, patch: Partial<Device>) => void;
   setTool: (tool: Tool) => void;
-  say: (says: string, mood?: PipMood) => void;
+  /**
+   * Pip says something. During a packet's trip (or with `append`) it is added to
+   * the current log; otherwise it starts a new one.
+   */
+  say: (says: string, mood?: PipMood, options?: { append?: boolean }) => void;
   send: (from: string, action: Action, to?: string) => void;
   /** Runs a terminal command; animated ones send a packet too. */
   runTerminal: (cmd: Command, from: string, target?: string) => void;
@@ -123,6 +131,8 @@ interface EditorState {
 }
 
 let token = 0;
+/** Pip keeps this many messages for paging back through. */
+const PIP_LOG_MAX = 30;
 let lineId = 0;
 
 /**
@@ -173,13 +183,13 @@ export const useEditor = create<EditorState>()((set, get) => {
     }
     if (journey.outcome === 'delivered') {
       playSound('arrive');
-      get().say(journey.message, 'excited');
+      get().say(journey.message, 'excited', { append: true });
     } else if (journey.outcome === 'blocked') {
       playSound('blocked');
-      get().say(journey.message, 'surprised');
+      get().say(journey.message, 'surprised', { append: true });
     } else {
       playSound('error');
-      get().say(journey.message, 'sad');
+      get().say(journey.message, 'sad', { append: true });
     }
   };
 
@@ -202,11 +212,19 @@ export const useEditor = create<EditorState>()((set, get) => {
     const reward = () => rewardJourney(journey, kindsOnPath, hubShout);
     pendingReward = reward;
 
-    if (journey.steps.length === 0) return finish(journey, reward);
+    if (journey.steps.length === 0) {
+      set({ pipLog: [], pipLogId: ++token });
+      return finish(journey, reward);
+    }
     // Badges and level-ups wait until the packet has finished its trip.
     releasePopups = useCelebrations.getState().hold();
     playSound('send');
-    set({ playback: { journey, phase: 'forward', step: 0, token: ++token }, reaction: null });
+    set({
+      playback: { journey, phase: 'forward', step: 0, token: ++token },
+      reaction: null,
+      pipLog: [],
+      pipLogId: ++token,
+    });
     get().say(journey.steps[0].note ?? 'Off I go!', 'excited');
   };
 
@@ -218,6 +236,8 @@ export const useEditor = create<EditorState>()((set, get) => {
     tool: 'move',
     cableFrom: null,
     pip: { says: '', mood: 'happy' },
+    pipLog: [],
+    pipLogId: 0,
     playback: null,
     reaction: null,
     history: [],
@@ -244,6 +264,8 @@ export const useEditor = create<EditorState>()((set, get) => {
         tool: 'move',
         cableFrom: null,
         pip: { says: intro, mood: 'happy' },
+        pipLog: [intro],
+        pipLogId: ++token,
         playback: null,
         reaction: null,
         history: [],
@@ -400,7 +422,12 @@ export const useEditor = create<EditorState>()((set, get) => {
       get().say(tips[tool], 'think');
     },
 
-    say: (says, mood = 'happy') => set({ pip: { says, mood } }),
+    say: (says, mood = 'happy', { append = false } = {}) =>
+      set((s) =>
+        append || s.playback
+          ? { pip: { says, mood }, pipLog: [...s.pipLog, says].slice(-PIP_LOG_MAX) }
+          : { pip: { says, mood }, pipLog: [says], pipLogId: ++token },
+      ),
 
     send: (from, action, to) => {
       if (get().playback) return;
@@ -428,6 +455,9 @@ export const useEditor = create<EditorState>()((set, get) => {
 
     setTerminalOpen: (open) => {
       set({ terminalOpen: open });
+      // On phones the settings sheet would cover the terminal, so close it.
+      if (open && window.matchMedia?.('(max-width: 900px)').matches)
+        set({ selectedId: null, cableFrom: null });
       playSound(open ? 'open' : 'toggle');
     },
 

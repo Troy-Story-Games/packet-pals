@@ -7,9 +7,12 @@ import { createRoot } from 'react-dom/client';
 import { App } from './app/App';
 import { unlockAudioOnGesture } from './services/audio/context';
 import { preloadSounds } from './services/audio/sfx';
+import { listenForInstall } from './services/install/installPrompt';
 
 // Browsers block audio until the first tap, so decode sounds then.
 unlockAudioOnGesture(preloadSounds);
+// The install offer arrives once, early, so listen before the app renders.
+listenForInstall();
 
 // Service workers only work over http(s); Electron loads the app from file://.
 if ('serviceWorker' in navigator && location.protocol.startsWith('http') && import.meta.env.PROD) {

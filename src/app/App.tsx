@@ -22,6 +22,9 @@ const BookScreen = lazy(() => import('@/features/book/BookScreen').then((m) => (
 const TrophiesScreen = lazy(() =>
   import('@/features/trophies/TrophiesScreen').then((m) => ({ default: m.TrophiesScreen })),
 );
+const AboutScreen = lazy(() =>
+  import('@/features/about/AboutScreen').then((m) => ({ default: m.AboutScreen })),
+);
 const CreditsScreen = lazy(() =>
   import('@/features/credits/CreditsScreen').then((m) => ({ default: m.CreditsScreen })),
 );
@@ -40,6 +43,8 @@ function Screen({ route }: { route: Route }) {
       return <TrophiesScreen />;
     case 'credits':
       return <CreditsScreen />;
+    case 'about':
+      return <AboutScreen />;
     default:
       return <HomeScreen />;
   }

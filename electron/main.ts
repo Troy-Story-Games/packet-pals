@@ -12,7 +12,7 @@ function createWindow(): void {
     minWidth: 400,
     minHeight: 600,
     backgroundColor: '#eaf4ff',
-    title: 'Kid SDN',
+    title: 'Packet Pals',
     icon: join(here, '../build/icon.png'),
     autoHideMenuBar: true,
     webPreferences: {

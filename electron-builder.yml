@@ -1,6 +1,6 @@
-appId: com.seanlaplante.kidsdn
-productName: Kid SDN
-artifactName: ${productName}-${version}-${os}-${arch}.${ext}
+appId: com.troystorygames.packetpals
+productName: Packet Pals
+artifactName: packet-pals-${version}-${os}-${arch}.${ext}
 directories:
   output: release
   buildResources: build
@@ -15,18 +15,20 @@ win:
   target:
     - nsis
     - portable
+portable:
+  artifactName: packet-pals-${version}-windows-portable.${ext}
 nsis:
+  artifactName: packet-pals-${version}-windows-setup.${ext}
   oneClick: false
   allowToChangeInstallationDirectory: true
 mac:
-  target: dmg
+  target:
+    - target: dmg
+      arch: [x64, arm64]
   category: public.app-category.education
 linux:
-  target:
-    - AppImage
-    - deb
+  target: AppImage
   category: Education
-  maintainer: Sean LaPlante
 publish:
   provider: github
-  releaseType: release
+  releaseType: draft
