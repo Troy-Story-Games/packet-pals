@@ -6,7 +6,8 @@ import { Topology } from '@/core/sim';
 import { EditorView } from '@/features/editor/EditorView';
 import { useEditor } from '@/features/editor/editorStore';
 import { MISSIONS, missionById, missionStars } from '@/game/missions/catalogue';
-import { useProgress } from '@/game/progressStore';
+import { unlockedFeatures } from '@/game/features';
+import { useLevel, useProgress } from '@/game/progressStore';
 import { isMissionUnlocked } from '@/game/unlocks';
 import { playSound } from '@/services/audio/sfx';
 import { burstConfetti } from '@/services/effects/confetti';
@@ -22,16 +23,23 @@ export function MissionScreen({ missionId }: { missionId: string }) {
   const history = useEditor((s) => s.history);
   const playback = useEditor((s) => s.playback);
   const startedAt = useEditor((s) => s.loadedAt);
+  // Let the kid enjoy the printout before the mission card appears.
+  const printing = useEditor((s) => s.printout !== null);
   const [attempt, setAttempt] = useState(0);
   const [hintsUsed, setHintsUsed] = useState(0);
   const [result, setResult] = useState<{ stars: number; seconds: number } | null>(null);
-  const unlocked = index >= 0 && isMissionUnlocked(index, progress);
+  const playerLevel = useLevel();
+  const unlocked = index >= 0 && isMissionUnlocked(index, progress, playerLevel);
 
   useEffect(() => {
     if (!mission || !unlocked) return;
+    // Missions get the features they teach plus everything already unlocked.
+    const features = [
+      ...new Set([...(mission.features ?? []), ...unlockedFeatures(useProgress.getState().missionStars)]),
+    ];
     useEditor
       .getState()
-      .load(mission.setup(), { tools: mission.tools, sandbox: false, intro: mission.story });
+      .load(mission.setup(), { tools: mission.tools, sandbox: false, intro: mission.story, features });
   }, [mission, unlocked, attempt]);
 
   const restart = () => {
@@ -44,7 +52,7 @@ export function MissionScreen({ missionId }: { missionId: string }) {
 
   // Check the goal whenever a packet animation finishes or the network changes.
   useEffect(() => {
-    if (!mission || result || playback || history.length === 0) return;
+    if (!mission || result || playback || printing || history.length === 0) return;
     if (!mission.check({ network, topo, history })) return;
     const seconds = Math.round((performance.now() - startedAt) / 1000);
     const stars = missionStars(mission, hintsUsed, useEditor.getState().failures, seconds);
@@ -55,12 +63,16 @@ export function MissionScreen({ missionId }: { missionId: string }) {
       burstConfetti();
     }, 900);
     return () => window.clearTimeout(timer);
-  }, [mission, network, topo, history, playback, result, hintsUsed, completeMission, startedAt]);
+  }, [mission, network, topo, history, playback, result, hintsUsed, completeMission, startedAt, printing]);
 
   if (!mission || !unlocked) {
     return (
       <Page title={mission ? 'Mission locked' : 'Mission not found'}>
-        <p>Finish the missions before this one first!</p>
+        <p>
+          {mission && (mission.minLevel ?? 1) > playerLevel
+            ? `This mission needs level ${mission.minLevel}. Play more missions and build networks to level up!`
+            : 'Finish the missions before this one first!'}
+        </p>
         <KidButton onClick={() => navigate('missions')}>Back to missions</KidButton>
       </Page>
     );

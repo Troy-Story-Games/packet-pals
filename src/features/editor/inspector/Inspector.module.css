@@ -167,3 +167,102 @@
 .target:hover {
   border-color: var(--primary);
 }
+
+.advancedLocked {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  background: #e2e8f0;
+  border: 2px dashed #94a3b8;
+  color: var(--ink-soft);
+}
+
+.advancedLocked span {
+  display: flex;
+  flex-direction: column;
+}
+
+.advanced {
+  background: #fff7ed;
+  border: 2px solid #fdba74;
+}
+
+.advancedToggle {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  min-height: 48px;
+  padding: 0;
+  border: none;
+  background: none;
+  font-weight: 700;
+  font-size: 1.1rem;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.chevron {
+  margin-left: auto;
+  font-size: 0.8rem;
+}
+
+.advancedBody {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  overflow: hidden;
+}
+
+.door {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 10px;
+  border-radius: 12px;
+  background: #fff;
+  border: 2px solid #fed7aa;
+  font-weight: 600;
+}
+
+.door span {
+  flex: 1;
+}
+
+.doorNumber {
+  padding: 1px 8px;
+  border-radius: 8px;
+  background: var(--ink);
+  color: #fff;
+  font-family: ui-monospace, monospace;
+  font-size: 0.85rem;
+}
+
+.section select {
+  min-height: 48px;
+  padding: 6px 10px;
+  border: 3px solid #c7dbfb;
+  border-radius: var(--radius-sm);
+  background: #fff;
+  font-size: 1rem;
+}
+
+.swatches {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 6px;
+}
+
+.swatch {
+  aspect-ratio: 1;
+  min-height: 34px;
+  border: 3px solid #fff;
+  border-radius: 10px;
+  box-shadow: 0 0 0 2px #cbd5e1;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.swatchActive {
+  box-shadow: 0 0 0 4px var(--ink);
+}

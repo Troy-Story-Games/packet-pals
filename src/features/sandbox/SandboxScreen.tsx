@@ -5,6 +5,8 @@ import { KidButton } from '@/components/KidButton';
 import { Modal } from '@/components/Modal';
 import { EditorView } from '@/features/editor/EditorView';
 import { useEditor } from '@/features/editor/editorStore';
+import { unlockedFeatures } from '@/game/features';
+import { useProgress } from '@/game/progressStore';
 import { SANDBOX_KINDS } from '@/game/unlocks';
 import { downloadNetwork, readNetworkFile, readSharedNetwork, shareLink, type ShareResult } from './share';
 import styles from './SandboxScreen.module.css';
@@ -26,6 +28,7 @@ export function SandboxScreen({ shared }: { shared: string | null }) {
     useEditor.getState().load(network, {
       tools: SANDBOX_KINDS,
       sandbox: true,
+      features: unlockedFeatures(useProgress.getState().missionStars),
       intro: fromLink ? 'Someone shared this network with you! Press play on any device to try it.' : INTRO,
     });
     if (shared) navigate('sandbox');
@@ -41,7 +44,12 @@ export function SandboxScreen({ shared }: { shared: string | null }) {
   );
 
   const load = (network: ReturnType<typeof starterNetwork>, intro: string) => {
-    useEditor.getState().load(network, { tools: SANDBOX_KINDS, sandbox: true, intro });
+    useEditor.getState().load(network, {
+      tools: SANDBOX_KINDS,
+      sandbox: true,
+      intro,
+      features: unlockedFeatures(useProgress.getState().missionStars),
+    });
     useSandbox.getState().save(network);
     setLoadKey((k) => k + 1);
   };

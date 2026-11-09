@@ -10,6 +10,7 @@ export interface Stats {
   hubShouts: number;
   /** Most devices ever in the sandbox at once. */
   biggestNetwork: number;
+  printsDone: number;
 }
 
 export type StatKey = keyof Stats;
@@ -24,4 +25,5 @@ export const EMPTY_STATS: Stats = {
   gamesPlayed: 0,
   hubShouts: 0,
   biggestNetwork: 0,
+  printsDone: 0,
 };

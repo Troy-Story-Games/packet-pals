@@ -2,9 +2,10 @@ import { Emoji } from '@/components/Emoji';
 import { Toggle } from '@/components/Toggle';
 import { APP_LABELS, DEVICE_SPECS, DOMAINS, type AppKind, type Device } from '@/core/sim';
 import { useEditor } from '../../editorStore';
+import { FirewallDoors } from './FirewallDoors';
 import styles from '../Inspector.module.css';
 
-const APPS: AppKind[] = ['game', 'video', 'web', 'chat'];
+const APPS: AppKind[] = ['game', 'video', 'web', 'chat', 'ping'];
 
 /** Rules: which apps and which devices the firewall stops. */
 export function FirewallSection({ device }: { device: Device }) {
@@ -21,28 +22,31 @@ export function FirewallSection({ device }: { device: Device }) {
   };
 
   return (
-    <section className={styles.section}>
-      <h3>
-        <Emoji code="1f6e1" /> Firewall rules
-      </h3>
-      <p className={styles.hint}>Switch on what to BLOCK.</p>
-      {APPS.map((app) => (
-        <Toggle
-          key={app}
-          label={`Block ${APP_LABELS[app]}`}
-          checked={rules.blockedApps.includes(app)}
-          onChange={(on) => toggle('blockedApps', app, on)}
-        />
-      ))}
-      {hosts.length > 0 && <p className={styles.hint}>Block everything from or to a device:</p>}
-      {hosts.map((h) => (
-        <Toggle
-          key={h.id}
-          label={`Block ${h.name}`}
-          checked={rules.blockedDevices.includes(h.id)}
-          onChange={(on) => toggle('blockedDevices', h.id, on)}
-        />
-      ))}
-    </section>
+    <>
+      <section className={styles.section}>
+        <h3>
+          <Emoji code="1f6e1" /> Firewall rules
+        </h3>
+        <p className={styles.hint}>Switch on what to BLOCK.</p>
+        {APPS.map((app) => (
+          <Toggle
+            key={app}
+            label={`Block ${APP_LABELS[app]}`}
+            checked={rules.blockedApps.includes(app)}
+            onChange={(on) => toggle('blockedApps', app, on)}
+          />
+        ))}
+        {hosts.length > 0 && <p className={styles.hint}>Block everything from or to a device:</p>}
+        {hosts.map((h) => (
+          <Toggle
+            key={h.id}
+            label={`Block ${h.name}`}
+            checked={rules.blockedDevices.includes(h.id)}
+            onChange={(on) => toggle('blockedDevices', h.id, on)}
+          />
+        ))}
+      </section>
+      <FirewallDoors device={device} />
+    </>
   );
 }

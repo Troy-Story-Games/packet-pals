@@ -13,6 +13,12 @@ export interface DeviceSpec {
   isHost: boolean;
   /** Passes traffic through without being the destination (hubs, switches, firewalls). */
   isTransparent: boolean;
+  /** Can use the mobile (cell) network. */
+  canCell?: boolean;
+  /** Can be watched live with the Video action (cameras, doorbells). */
+  isCamera?: boolean;
+  /** Toolbox group. */
+  group?: 'smart';
 }
 
 export const DEVICE_SPECS: Record<DeviceKind, DeviceSpec> = {
@@ -37,7 +43,7 @@ export const DEVICE_SPECS: Record<DeviceKind, DeviceSpec> = {
   tablet: {
     label: 'Tablet',
     blurb: 'WiFi only',
-    emoji: '1f4f1',
+    emoji: null,
     ports: 0,
     canWifi: true,
     isHost: true,
@@ -133,6 +139,96 @@ export const DEVICE_SPECS: Record<DeviceKind, DeviceSpec> = {
     isHost: true,
     isTransparent: false,
   },
+  dnsServer: {
+    label: 'DNS Server',
+    blurb: 'The phone book for names',
+    emoji: '1f4d6',
+    ports: 1,
+    canWifi: false,
+    isHost: true,
+    isTransparent: false,
+  },
+  phone: {
+    label: 'Phone',
+    blurb: 'WiFi or mobile data',
+    emoji: '1f4f1',
+    ports: 0,
+    canWifi: true,
+    canCell: true,
+    isHost: true,
+    isTransparent: false,
+  },
+  cellTower: {
+    label: 'Cell Tower',
+    blurb: 'Mobile data for phones, far and wide',
+    emoji: null,
+    ports: 1,
+    canWifi: false,
+    isHost: false,
+    isTransparent: false,
+  },
+  smartSpeaker: {
+    label: 'Smart Speaker',
+    blurb: 'Plays music, answers questions',
+    emoji: '1f50a',
+    ports: 0,
+    canWifi: true,
+    isHost: true,
+    isTransparent: false,
+    group: 'smart',
+  },
+  smartTv: {
+    label: 'Smart TV',
+    blurb: 'Watches videos from the Internet',
+    emoji: '1f4fa',
+    ports: 1,
+    canWifi: true,
+    isHost: true,
+    isTransparent: false,
+    group: 'smart',
+  },
+  doorbell: {
+    label: 'Video Doorbell',
+    blurb: 'See who is at the door',
+    emoji: '1f514',
+    ports: 0,
+    canWifi: true,
+    isHost: true,
+    isTransparent: false,
+    isCamera: true,
+    group: 'smart',
+  },
+  camera: {
+    label: 'Security Camera',
+    blurb: 'Keeps an eye on things',
+    emoji: '1f4f9',
+    ports: 1,
+    canWifi: true,
+    isHost: true,
+    isTransparent: false,
+    isCamera: true,
+    group: 'smart',
+  },
+  smartLight: {
+    label: 'Smart Light',
+    blurb: 'Turn it on from your phone',
+    emoji: '1f4a1',
+    ports: 0,
+    canWifi: true,
+    isHost: true,
+    isTransparent: false,
+    group: 'smart',
+  },
+  thermostat: {
+    label: 'Thermostat',
+    blurb: 'Keeps the house cosy',
+    emoji: '1f321',
+    ports: 0,
+    canWifi: true,
+    isHost: true,
+    isTransparent: false,
+    group: 'smart',
+  },
 };
 
 export const SERVER_FOR_ACTION: Partial<Record<Action, DeviceKind>> = {
@@ -148,7 +244,7 @@ export const DOMAINS: Partial<Record<DeviceKind, string>> = {
 };
 
 export const APP_FOR_ACTION: Record<Action, AppKind> = {
-  ping: 'chat',
+  ping: 'ping',
   message: 'chat',
   video: 'video',
   game: 'game',
@@ -157,17 +253,34 @@ export const APP_FOR_ACTION: Record<Action, AppKind> = {
 };
 
 export const APP_LABELS: Record<AppKind, string> = {
-  chat: 'Chat & pings',
+  chat: 'Chat',
+  ping: 'Pings',
   video: 'Videos',
   game: 'Games',
   web: 'Websites',
   print: 'Printing',
 };
 
+/**
+ * "Door numbers" (ports) each app knocks on. Pings don't really use a door, but
+ * calling it the knock door keeps the idea simple for kids.
+ */
+export const DOORS: Record<AppKind, string> = {
+  web: '80',
+  video: '443',
+  chat: '5222',
+  game: '3074',
+  ping: 'knock',
+  print: '9100',
+};
+
 /** WiFi reaches this far (canvas units) from a router. */
 export const WIFI_RANGE = 340;
 
-/** Devices whose packets are about the Internet rather than the home network. */
+/** Mobile data reaches much further from a cell tower. */
+export const CELL_RANGE = 900;
+
+/** Servers that live on the Internet by default and answer to a name. */
 export function isServer(kind: DeviceKind): boolean {
-  return kind === 'videoServer' || kind === 'gameServer' || kind === 'webServer';
+  return kind === 'videoServer' || kind === 'gameServer' || kind === 'webServer' || kind === 'dnsServer';
 }

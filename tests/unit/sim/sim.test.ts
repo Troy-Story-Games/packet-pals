@@ -118,7 +118,7 @@ describe('routers and WiFi', () => {
       .add('internet', 'I')
       .link('PC', 'R')
       .link('R', 'I');
-    expect(sendPacket(new Topology(net.network), 'PC', 'video').message).toMatch(/no Video Server/);
+    expect(sendPacket(new Topology(net.network), 'PC', 'video').message).toMatch(/Add a Video Server/);
   });
 
   it('static addresses must match the router neighbourhood', () => {

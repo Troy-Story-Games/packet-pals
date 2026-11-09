@@ -2,10 +2,13 @@ import { describe, expect, it } from 'vitest';
 import {
   connect,
   createDevice,
+  runCommand,
   sendPacket,
   Topology,
   type Action,
+  type Command,
   type Device,
+  type Journey,
   type Network,
 } from '@/core/sim';
 import { MISSIONS, missionStars } from '@/game/missions/catalogue';
@@ -62,6 +65,22 @@ class Player {
     return this;
   }
 
+  /** Runs a terminal command, the way the Terminal panel does. */
+  command(cmd: Command, from: string, target?: string): this {
+    const topo = new Topology(this.network);
+    const { journey } = runCommand(topo, cmd, from, target);
+    if (journey) this.record(topo, journey, cmd);
+    return this;
+  }
+
+  private record(topo: Topology, journey: Journey, command?: Command): void {
+    const ids = [
+      journey.from,
+      ...journey.steps.flatMap((s) => s.moves.filter((m) => m.fate !== 'ignored').map((m) => m.to)),
+    ];
+    this.history.push({ journey, kindsOnPath: ids.map((id) => topo.device(id).kind), command });
+  }
+
   done(): boolean {
     return this.mission.check({
       network: this.network,
@@ -100,6 +119,30 @@ const SOLUTIONS: Record<string, (p: Player) => void> = {
       .send('laptop', 'video'),
   'fix-address': (p) => p.update('pc', { staticIp: undefined }).send('pc', 'web'),
   'printer-party': (p) => p.link('printer', 'sw').send('laptop', 'print', 'printer'),
+  'phone-home': (p) => p.update('phone', { network: 'cell' }).send('phone', 'video'),
+  'phone-book': (p) => p.send('laptop', 'web').update('dns', { powered: true }).send('laptop', 'web'),
+  'network-detective': (p) =>
+    p
+      .command('traceroute', 'pc', 'videos.fun')
+      .update('wall', { powered: true })
+      .command('ping', 'pc', 'videos.fun'),
+  'my-website': (p) =>
+    p
+      .update('homedns', { dns: { entries: [{ name: 'mysite.home', deviceId: 'mysite' }] } })
+      .send('laptop', 'web', 'mysite.home'),
+  'door-numbers': (p) =>
+    p
+      .send('friend', 'message', 'pc')
+      .update('wall', {
+        firewall: { blockedApps: [], blockedDevices: [], doors: [{ app: 'chat', deviceId: 'pc' }] },
+      })
+      .send('friend', 'message', 'pc'),
+  'game-night': (p) =>
+    p
+      .update('wall', {
+        firewall: { blockedApps: [], blockedDevices: [], doors: [{ app: 'game', deviceId: 'myconsole' }] },
+      })
+      .send('friendconsole', 'game', 'myconsole'),
   'packet-race': (p) =>
     p
       .add('computer', 'pc')

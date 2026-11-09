@@ -12,6 +12,9 @@ const TOOLS: Array<{ id: Tool; label: string; emoji: string }> = [
 export function ToolBar() {
   const tool = useEditor((s) => s.tool);
   const setTool = useEditor((s) => s.setTool);
+  const hasTerminal = useEditor((s) => s.features.includes('terminal'));
+  const terminalOpen = useEditor((s) => s.terminalOpen);
+  const setTerminalOpen = useEditor((s) => s.setTerminalOpen);
   return (
     <div className={styles.bar} role="toolbar" aria-label="Tools">
       {TOOLS.map((t) => (
@@ -25,6 +28,16 @@ export function ToolBar() {
           <span>{t.label}</span>
         </button>
       ))}
+      {hasTerminal && (
+        <button
+          className={`${styles.tool} ${terminalOpen ? styles.active : ''}`}
+          aria-pressed={terminalOpen}
+          onClick={() => setTerminalOpen(!terminalOpen)}
+        >
+          <Emoji code="1f4bb" size={34} />
+          <span>Terminal</span>
+        </button>
+      )}
     </div>
   );
 }

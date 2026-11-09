@@ -11,11 +11,20 @@ export type DeviceKind =
   | 'internet'
   | 'videoServer'
   | 'gameServer'
-  | 'webServer';
+  | 'webServer'
+  | 'dnsServer'
+  | 'phone'
+  | 'cellTower'
+  | 'smartSpeaker'
+  | 'smartTv'
+  | 'doorbell'
+  | 'camera'
+  | 'smartLight'
+  | 'thermostat';
 
 /** Things a packet can be trying to do. Firewalls filter by the matching app. */
 export type Action = 'ping' | 'message' | 'video' | 'game' | 'web' | 'print';
-export type AppKind = 'chat' | 'video' | 'game' | 'web' | 'print';
+export type AppKind = 'chat' | 'ping' | 'video' | 'game' | 'web' | 'print';
 
 export interface RouterConfig {
   wifiOn: boolean;
@@ -25,9 +34,23 @@ export interface RouterConfig {
   dhcp: boolean;
 }
 
+/** A port-forwarding rule: let this app in from the Internet, to this device. */
+export interface Door {
+  app: AppKind;
+  deviceId: string;
+}
+
 export interface FirewallConfig {
   blockedApps: AppKind[];
   blockedDevices: string[];
+  /** Doors opened from the Internet into the home (port forwarding). */
+  doors?: Door[];
+}
+
+/** A custom name in a DNS server's phone book. */
+export interface DnsEntry {
+  name: string;
+  deviceId: string;
 }
 
 export interface Device {
@@ -44,6 +67,10 @@ export interface Device {
   wifi?: { ssid: string; password: string };
   router?: RouterConfig;
   firewall?: FirewallConfig;
+  /** Phones: use WiFi or the mobile (cell) network. */
+  network?: 'wifi' | 'cell';
+  /** DNS servers: custom names they know. */
+  dns?: { entries: DnsEntry[] };
   /** Mission-placed devices can't be deleted. */
   locked?: boolean;
 }
@@ -54,12 +81,25 @@ export interface Link {
   b: string;
 }
 
+export type BuildingTemplate = 'house1' | 'house2' | 'house3' | 'office';
+
+/** A purely decorative building drawn behind devices in the sandbox. */
+export interface Decoration {
+  id: string;
+  template: BuildingTemplate;
+  x: number;
+  y: number;
+  colors: { walls: string; roof: string; floors: string; trim: string };
+  label?: string;
+}
+
 export interface Network {
   devices: Device[];
   links: Link[];
+  decorations?: Decoration[];
 }
 
-export type Via = 'cable' | 'wifi';
+export type Via = 'cable' | 'wifi' | 'cell';
 
 /** A usable connection between two powered devices. */
 export interface Edge {
@@ -69,7 +109,7 @@ export interface Edge {
   linkId?: string;
 }
 
-export type AddressSource = 'dhcp' | 'static' | 'self' | 'public' | 'none';
+export type AddressSource = 'dhcp' | 'static' | 'self' | 'public' | 'carrier' | 'none';
 
 export interface Address {
   ip: string | null;
@@ -100,6 +140,8 @@ export interface Move {
 
 export interface JourneyStep {
   moves: Move[];
+  /** Lookup steps carry a question to the DNS server rather than the real packet. */
+  packet?: 'lookup';
   /** Something to say while this step plays (e.g. DNS lookups). */
   note?: string;
 }
@@ -116,4 +158,6 @@ export interface Journey {
   steps: JourneyStep[];
   /** Steps for the answer coming back (pings, videos, games, websites). */
   replySteps: JourneyStep[];
+  /** The name that was looked up, if the target was a name like videos.fun. */
+  name?: string;
 }

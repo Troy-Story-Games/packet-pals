@@ -7,6 +7,7 @@ const SOURCE_TEXT = {
   static: 'typed in by hand',
   self: 'made up by itself (no router is handing out addresses)',
   public: 'an Internet address',
+  carrier: 'from the phone company',
   none: '',
 };
 
@@ -37,7 +38,7 @@ export function StatusSection({ device, topo }: { device: Device; topo: Topology
         <ul className={styles.status}>
           {links.map((e) => (
             <li key={`${e.via}-${e.linkId ?? topo.other(e, device.id)}`}>
-              {e.via === 'wifi' ? 'WiFi' : 'Cable'} to{' '}
+              {e.via === 'wifi' ? 'WiFi' : e.via === 'cell' ? 'Mobile data' : 'Cable'} to{' '}
               <strong>{topo.device(topo.other(e, device.id)).name}</strong>
             </li>
           ))}
@@ -50,6 +51,14 @@ export function StatusSection({ device, topo }: { device: Device; topo: Topology
             <span className={styles.hint}> ({SOURCE_TEXT[address.source]})</span>
           )}
         </p>
+      )}
+      {topo.frontDoor(device.id) && (
+        <p>
+          Internet address (front door): <span className={styles.mono}>{topo.frontDoor(device.id)}</span>
+        </p>
+      )}
+      {device.kind === 'cellTower' && (
+        <p className={styles.hint}>Gives phones on Mobile data a signal from far away.</p>
       )}
       {domain && (
         <p>

@@ -9,8 +9,10 @@ Runs in any modern browser (installable as an offline app on Android tablets and
 - **Drag-and-drop network canvas**: tap a device in the toolbox to add it, drag to move, plug in cables by tapping two devices (or dragging between them), erase with the sponge
 - **Real-ish networking**: hubs flood, switches forward, routers hand out addresses (DHCP) and connect to the Internet, WiFi needs the right name, password and range, firewalls block apps or devices, and devices in other homes can't be reached directly
 - **Packets you can watch**: ping, message, video, game, website and print, each animated hop by hop with a kid-friendly explanation of what happened
-- **Missions**: 12 guided puzzles with hints, stars and unlocks, ending with a timed build-from-scratch race
-- **Sandbox**: autosaved free build, save/open files, share as a QR code link
+- **Missions**: Chapter 1 (12 guided puzzles on network basics, ending with a timed build-from-scratch race) and Chapter 2 "Network Pro" (phones and cell towers, DNS servers and your own website names, the Terminal with traceroute, and opening firewall doors for friends and game nights). Each advanced feature unlocks after the mission that teaches it.
+- **Sandbox**: autosaved free build with decorative houses and offices (with rooms and paintable colours), smart-home devices (speakers, TVs, doorbells, cameras, lights, thermostats), save/open files, share as a QR code link
+- **Terminal**: build `ping`, `traceroute`, `nslookup` and `ipconfig` commands from tappable pills and watch them run
+- **Printer surprises**: every print pops out a fun document
 - **Network Book**: every device explained, unlocked as it's discovered
 - Read-aloud for every message, sound effects, optional procedural music
 

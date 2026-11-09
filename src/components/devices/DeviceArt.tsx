@@ -26,6 +26,8 @@ export function DeviceArt({ kind, size = 64 }: { kind: DeviceKind; size?: number
       style={{ display: 'block', overflow: 'visible' }}
     >
       {kind === 'router' && <RouterArt />}
+      {kind === 'tablet' && <TabletArt />}
+      {kind === 'cellTower' && <TowerArt />}
       {kind === 'switch' && <BoxArt body="#2563eb" ports={8} arrows />}
       {kind === 'hub' && <BoxArt body="#f97316" ports={4} />}
     </svg>
@@ -80,6 +82,38 @@ function RouterArt() {
       {[0, 1, 2, 3, 4].map((i) => (
         <circle key={i} cx={14 + i * 9} cy={37} r={2.6} fill={i === 0 ? '#38bdf8' : '#4ade80'} />
       ))}
+    </g>
+  );
+}
+
+function TabletArt() {
+  return (
+    <g>
+      <rect x={6} y={12} width={52} height={40} rx={7} fill="#334155" stroke="#1e2a4a" strokeWidth={3} />
+      <rect x={12} y={17} width={40} height={30} rx={3} fill="#60a5fa" />
+      <path d="M16 40 l8 -10 l6 6 l5 -5 l13 9 z" fill="#bfdbfe" />
+      <circle cx={42} cy={24} r={3.5} fill="#fde047" />
+    </g>
+  );
+}
+
+function TowerArt() {
+  return (
+    <g strokeLinecap="round" strokeLinejoin="round">
+      <g fill="none" stroke="#f97316" strokeWidth={3}>
+        <path d="M20 4 q-8 8 0 16" />
+        <path d="M44 4 q8 8 0 16" />
+        <path d="M14 0 q-12 12 0 24" />
+        <path d="M50 0 q12 12 0 24" />
+      </g>
+      <path
+        d="M32 10 L18 60 M32 10 L46 60 M22 46 L42 46 M25 34 L39 34 M28 22 L36 22 M22 46 L39 34 M25 34 L36 22"
+        fill="none"
+        stroke="#475569"
+        strokeWidth={3}
+      />
+      <circle cx={32} cy={10} r={5} fill="#ef4444" stroke="#1e2a4a" strokeWidth={2} />
+      <rect x={14} y={58} width={36} height={5} rx={2} fill="#1e2a4a" />
     </g>
   );
 }

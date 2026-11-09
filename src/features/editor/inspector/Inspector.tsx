@@ -3,11 +3,14 @@ import { DeviceArt } from '@/components/devices/DeviceArt';
 import { GameIcon } from '@/components/GameIcon';
 import { KidButton } from '@/components/KidButton';
 import { Toggle } from '@/components/Toggle';
-import { DEVICE_SPECS, DOMAINS, Topology } from '@/core/sim';
+import { DEVICE_SPECS, isServer, Topology } from '@/core/sim';
 import { useEditor } from '../editorStore';
 import styles from './Inspector.module.css';
+import { BuildingInspector } from './BuildingInspector';
 import { AddressSection } from './sections/AddressSection';
+import { DnsSection } from './sections/DnsSection';
 import { FirewallSection } from './sections/FirewallSection';
+import { PhoneSection } from './sections/PhoneSection';
 import { RouterSection } from './sections/RouterSection';
 import { SendSection } from './sections/SendSection';
 import { StatusSection } from './sections/StatusSection';
@@ -16,10 +19,13 @@ import { WifiSection } from './sections/WifiSection';
 /** Settings and actions for the selected device. */
 export function Inspector() {
   const selectedId = useEditor((s) => s.selectedId);
+  const selectedBuildingId = useEditor((s) => s.selectedBuildingId);
   const network = useEditor((s) => s.network);
   const { updateDevice, removeDevice, select } = useEditor.getState();
   const topo = useMemo(() => new Topology(network), [network]);
   const device = network.devices.find((d) => d.id === selectedId);
+  const building = network.decorations?.find((b) => b.id === selectedBuildingId);
+  if (building) return <BuildingInspector building={building} />;
 
   if (!device) {
     return (
@@ -30,7 +36,7 @@ export function Inspector() {
   }
 
   const spec = DEVICE_SPECS[device.kind];
-  const canSend = spec.isHost && device.kind !== 'router' && !DOMAINS[device.kind];
+  const canSend = spec.isHost && device.kind !== 'router' && !isServer(device.kind);
 
   return (
     // Keyed by device so per-device form state resets when the selection changes.
@@ -53,10 +59,14 @@ export function Inspector() {
       {canSend && device.powered && <SendSection device={device} topo={topo} />}
 
       <StatusSection device={device} topo={topo} />
-      {spec.canWifi && device.powered && <WifiSection device={device} topo={topo} />}
+      {spec.canCell && device.powered && <PhoneSection device={device} topo={topo} />}
+      {spec.canWifi && device.powered && device.network !== 'cell' && (
+        <WifiSection device={device} topo={topo} />
+      )}
       {device.kind === 'router' && <RouterSection device={device} />}
       {device.kind === 'firewall' && <FirewallSection device={device} />}
-      {spec.isHost && device.kind !== 'router' && !DOMAINS[device.kind] && (
+      {device.kind === 'dnsServer' && <DnsSection device={device} />}
+      {spec.isHost && device.kind !== 'router' && !isServer(device.kind) && (
         <AddressSection device={device} topo={topo} />
       )}
 

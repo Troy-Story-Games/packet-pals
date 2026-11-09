@@ -74,6 +74,13 @@ export const BADGES: Badge[] = [
     earned: (c) => c.stats.packetsBlocked >= 1,
   },
   {
+    id: 'printing-press',
+    name: 'Printing Press',
+    description: 'Print something on a printer.',
+    emoji: '1f5a8',
+    earned: (c) => c.stats.printsDone >= 1,
+  },
+  {
     id: 'architect',
     name: 'Network Architect',
     description: 'Build a network with 10 devices.',

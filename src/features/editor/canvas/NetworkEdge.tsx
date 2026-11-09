@@ -28,6 +28,7 @@ export function NetworkEdge({ id, source, target, data }: EdgeProps<NetworkEdgeT
 
   const path = `M${s.x} ${s.y} L${t.x} ${t.y}`;
   const wifi = data.via === 'wifi';
+  const cell = data.via === 'cell';
 
   const steps = playback
     ? playback.phase === 'forward'
@@ -41,14 +42,21 @@ export function NetworkEdge({ id, source, target, data }: EdgeProps<NetworkEdgeT
           ((m.from === source && m.to === target) || (m.from === target && m.to === source)),
       )
     : [];
-  const color = playback ? ACTION_INFO[playback.journey.action].color : '#fff';
+  const step = steps[playback?.step ?? 0];
+  // Phone-book questions are teal; the real packet uses its action's colour.
+  const color =
+    step?.packet === 'lookup' ? '#14b8a6' : playback ? ACTION_INFO[playback.journey.action].color : '#fff';
 
   return (
     <>
       {/* Wide invisible stroke so cables are easy to tap with a finger. */}
-      <path d={path} className={styles.hitArea} data-erase={tool === 'erase' && !wifi ? 'true' : undefined} />
-      {wifi ? (
-        <BaseEdge id={id} path={path} className={styles.wifi} />
+      <path
+        d={path}
+        className={styles.hitArea}
+        data-erase={tool === 'erase' && !wifi && !cell ? 'true' : undefined}
+      />
+      {wifi || cell ? (
+        <BaseEdge id={id} path={path} className={cell ? styles.cell : styles.wifi} />
       ) : (
         <>
           <path d={path} className={styles.cableShadow} />

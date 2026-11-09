@@ -49,3 +49,57 @@
   font-size: 0.72rem;
   white-space: nowrap;
 }
+
+.wrap {
+  background: var(--surface);
+  border-top: 3px solid var(--ink);
+}
+
+.wrap .toolbox {
+  border-top: none;
+}
+
+.tabs {
+  display: flex;
+  gap: 6px;
+  padding: 8px 12px 0;
+}
+
+.tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 40px;
+  padding: 4px 14px;
+  border: 3px solid #c7dbfb;
+  border-radius: 999px;
+  background: #fff;
+  font-weight: 600;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.tabActive {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+}
+
+.buildingPreview {
+  display: grid;
+  place-items: center;
+  width: 64px;
+  height: 56px;
+  overflow: hidden;
+}
+
+.buildingPreview > span {
+  display: block;
+  transform-origin: center;
+  width: 0;
+  height: 0;
+}
+
+.buildingPreview > span > svg {
+  translate: -50% -50%;
+}

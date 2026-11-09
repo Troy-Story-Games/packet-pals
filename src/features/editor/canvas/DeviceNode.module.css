@@ -128,8 +128,8 @@
   position: absolute;
   z-index: -1;
   border-radius: 50%;
-  border: 3px dashed rgb(14 165 233 / 0.35);
-  background: radial-gradient(circle, rgb(14 165 233 / 0.08) 0%, rgb(14 165 233 / 0.02) 70%);
+  border: 3px dashed rgb(var(--ring) / 0.35);
+  background: radial-gradient(circle, rgb(var(--ring) / 0.08) 0%, rgb(var(--ring) / 0.02) 70%);
   pointer-events: none;
 }
 
@@ -137,7 +137,7 @@
   position: absolute;
   inset: 0;
   border-radius: 50%;
-  border: 3px solid rgb(14 165 233 / 0.5);
+  border: 3px solid rgb(var(--ring) / 0.5);
   animation: ripple 3.6s ease-out infinite;
   opacity: 0;
 }

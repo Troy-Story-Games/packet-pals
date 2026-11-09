@@ -35,3 +35,11 @@
     stroke-dashoffset: -28;
   }
 }
+
+.cell {
+  stroke: #f97316 !important;
+  stroke-width: 4px !important;
+  stroke-dasharray: 14 8 2 8;
+  stroke-linecap: round;
+  animation: radio 0.7s linear infinite;
+}

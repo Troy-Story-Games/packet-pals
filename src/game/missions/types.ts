@@ -1,9 +1,12 @@
-import type { DeviceKind, Journey, Network, Topology } from '@/core/sim';
+import type { Command, DeviceKind, Journey, Network, Topology } from '@/core/sim';
+import type { Feature } from '../features';
 
 /** A packet that was sent during a mission, with the kinds of devices it passed through. */
 export interface HistoryEntry {
   journey: Journey;
   kindsOnPath: DeviceKind[];
+  /** Set when the packet was sent from the terminal. */
+  command?: Command;
 }
 
 export interface MissionContext {
@@ -30,4 +33,10 @@ export interface Mission {
   lesson: string;
   /** Seconds for a timed mission; stars are then based on time. */
   timeLimit?: number;
+  /** Chapter on the mission map. */
+  chapter: 1 | 2;
+  /** Player level needed to start the mission. */
+  minLevel?: number;
+  /** Advanced features switched on while playing this mission. */
+  features?: Feature[];
 }

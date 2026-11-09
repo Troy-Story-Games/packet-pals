@@ -1,0 +1,46 @@
+.backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  display: grid;
+  place-items: center;
+  background: rgb(30 42 74 / 0.55);
+}
+
+.stage {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+}
+
+.paper {
+  width: min(320px, 80vw);
+  padding: 22px 20px 26px;
+  border: 3px solid #cbd5e1;
+  border-radius: 8px 8px 0 0;
+  background: repeating-linear-gradient(#fff 0 30px, #e0f2fe 30px 32px);
+  box-shadow: 0 8px 24px rgb(0 0 0 / 0.25);
+  text-align: center;
+  transform-origin: bottom center;
+  font-family: var(--font-body);
+}
+
+.paper h2 {
+  margin: 8px 0;
+  color: var(--primary);
+}
+
+.paper p {
+  margin: 4px 0;
+  font-size: 1.1rem;
+}
+
+.printer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  margin: -10px 0 16px;
+  color: #fff;
+  font-weight: 700;
+}

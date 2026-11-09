@@ -18,7 +18,9 @@ export function createDevice(kind: DeviceKind, x: number, y: number, devices: De
   const device: Device = { id: newId(kind), kind, name: nextName(kind, devices), x, y, powered: true };
   if (kind === 'router')
     device.router = { wifiOn: true, ssid: 'Home WiFi', password: 'secret123', dhcp: true };
-  if (kind === 'firewall') device.firewall = { blockedApps: [], blockedDevices: [] };
+  if (kind === 'firewall') device.firewall = { blockedApps: [], blockedDevices: [], doors: [] };
+  if (kind === 'dnsServer') device.dns = { entries: [] };
+  if (kind === 'phone') device.network = 'wifi';
   return device;
 }
 

@@ -1,7 +1,16 @@
 import { useState } from 'react';
 import { DeviceArt } from '@/components/devices/DeviceArt';
 import { Emoji } from '@/components/Emoji';
-import { DEVICE_SPECS, DOMAINS, type Action, type Device, type Topology } from '@/core/sim';
+import {
+  canTarget,
+  DEVICE_SPECS,
+  DOMAINS,
+  knownNames,
+  SERVER_FOR_ACTION,
+  type Action,
+  type Device,
+  type Topology,
+} from '@/core/sim';
 import { playSound } from '@/services/audio/sfx';
 import { ACTION_INFO, ACTIONS } from '../../actions';
 import { useEditor } from '../../editorStore';
@@ -13,17 +22,44 @@ export function SendSection({ device, topo }: { device: Device; topo: Topology }
   const busy = useEditor((s) => s.playback !== null);
   const [pending, setPending] = useState<Action | null>(null);
 
-  const targets = (action: Action) =>
-    topo.network.devices.filter((d) => {
-      if (d.id === device.id) return false;
-      if (action === 'print') return d.kind === 'printer';
-      return DEVICE_SPECS[d.kind].isHost && !DOMAINS[d.kind];
-    });
+  const hostGames = useEditor((s) => s.features.includes('hostGames'));
+
+  /** Where an action can go: devices, or names from the phone book. */
+  const options = (action: Action): Array<{ to: string; label: string; device?: Device }> => {
+    const devices = (pred: (d: Device) => boolean) =>
+      topo.network.devices
+        .filter((d) => d.id !== device.id && pred(d))
+        .map((d) => ({ to: d.id, label: d.name, device: d }));
+    const serverKind = SERVER_FOR_ACTION[action];
+    const builtIns = Object.values(DOMAINS) as string[];
+    const names = (): Array<{ to: string; label: string }> => {
+      const custom = knownNames(topo, device.id).filter((n) => !builtIns.includes(n));
+      const own = serverKind ? [DOMAINS[serverKind]!] : [];
+      return [...own, ...(action === 'web' ? custom : [])].map((n) => ({ to: n, label: n }));
+    };
+    switch (action) {
+      case 'print':
+        return devices((d) => d.kind === 'printer');
+      case 'video':
+        return [...names(), ...devices((d) => Boolean(DEVICE_SPECS[d.kind].isCamera))];
+      case 'game':
+        return [
+          ...names(),
+          ...(hostGames ? devices((d) => d.kind === 'console' && canTarget('game', d)) : []),
+        ];
+      case 'web':
+        return names();
+      default:
+        return devices((d) => DEVICE_SPECS[d.kind].isHost);
+    }
+  };
 
   const choose = (action: Action) => {
-    if (!ACTION_INFO[action].needsTarget) {
+    const opts = options(action);
+    // One obvious place to go (like videos.fun): just send it.
+    if (!ACTION_INFO[action].needsTarget && opts.length <= 1) {
       setPending(null);
-      send(device.id, action);
+      send(device.id, action, opts[0]?.to);
       return;
     }
     playSound('tap');
@@ -53,23 +89,23 @@ export function SendSection({ device, topo }: { device: Device; topo: Topology }
         <>
           <p className={styles.hint}>Send it to...</p>
           <div className={styles.targets}>
-            {targets(pending).length === 0 && (
+            {options(pending).length === 0 && (
               <p className={styles.warn}>
                 {pending === 'print' ? 'There is no printer yet!' : 'There is nobody to send to yet!'}
               </p>
             )}
-            {targets(pending).map((t) => (
+            {options(pending).map((t) => (
               <button
-                key={t.id}
+                key={t.to}
                 className={styles.target}
                 disabled={busy}
                 onClick={() => {
-                  send(device.id, pending, t.id);
+                  send(device.id, pending, t.to);
                   setPending(null);
                 }}
               >
-                <DeviceArt kind={t.kind} size={36} />
-                {t.name}
+                {t.device ? <DeviceArt kind={t.device.kind} size={36} /> : <Emoji code="1f310" size={30} />}
+                {t.label}
               </button>
             ))}
           </div>

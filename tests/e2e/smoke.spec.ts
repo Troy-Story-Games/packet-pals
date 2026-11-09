@@ -57,3 +57,100 @@ test('sandbox adds devices from the toolbox', async ({ page }) => {
     .click();
   await expect(page.locator('.react-flow__node')).toHaveCount(before + 1);
 });
+
+/** Starts with Chapter 1 (and optionally more) finished and a high level. */
+async function progress(page: Page, extra: string[] = []) {
+  await page.addInitScript((extra) => {
+    const ch1 = [
+      'hello-cable',
+      'ping-pong',
+      'hub-vs-switch',
+      'home-router',
+      'make-wifi',
+      'wrong-password',
+      'hello-internet',
+      'too-far',
+      'bedtime',
+      'fix-address',
+      'printer-party',
+      'packet-race',
+    ];
+    const stars = Object.fromEntries([...ch1, ...extra].map((id) => [id, 3]));
+    const badges = [
+      'plugged-in',
+      'packet-pilot',
+      'wifi-wizard',
+      'loud-hub',
+      'surfer',
+      'gamer',
+      'guard',
+      'architect',
+      'packet-pro',
+      'halfway',
+      'royal',
+      'printing-press',
+      'collector',
+      'champion',
+    ];
+    localStorage.setItem(
+      'kidsdn-progress',
+      JSON.stringify({
+        state: {
+          xp: 3000,
+          stats: {},
+          missionStars: stars,
+          badges,
+          streak: { count: 1, lastDay: null },
+          discovered: [],
+        },
+        version: 1,
+      }),
+    );
+  }, extra);
+}
+
+test('printing shows what came out of the printer', async ({ page }) => {
+  await page.goto('./#/sandbox');
+  await expect(device(page, 'Computer')).toBeVisible();
+  await page
+    .getByRole('button', { name: /^Printer$/ })
+    .first()
+    .click();
+  await dismissRewards(page);
+  await page.getByRole('button', { name: 'Cable' }).click();
+  await device(page, 'Computer').click();
+  await device(page, 'Printer').click();
+  await page.waitForTimeout(400);
+  await dismissRewards(page);
+  await page.getByRole('button', { name: 'Move', exact: true }).click();
+  await device(page, 'Computer').click();
+  await page.getByRole('button', { name: 'Print', exact: true }).click();
+  // The "send to" list in the inspector comes before the toolbox card in the page.
+  await page.getByRole('button', { name: 'Printer', exact: true }).first().click();
+  await expect(page.getByRole('dialog', { name: /Printer printed/ })).toBeVisible({ timeout: 10_000 });
+});
+
+test('locked advanced settings show what unlocks them', async ({ page }) => {
+  await progress(page);
+  await page.goto('./#/sandbox');
+  await expect(device(page, 'Computer')).toBeVisible();
+  await page
+    .getByRole('button', { name: /Firewall/ })
+    .first()
+    .click();
+  await expect(page.getByText(/Level 8 · Mission 17: Door Numbers/)).toBeVisible();
+});
+
+test('the terminal runs commands built from pills', async ({ page }) => {
+  await progress(page, ['phone-home', 'phone-book', 'network-detective']);
+  await page.goto('./#/sandbox');
+  await expect(device(page, 'Computer')).toBeVisible();
+  await dismissRewards(page);
+  await page.getByRole('button', { name: 'Terminal' }).click();
+  const terminal = page.getByRole('dialog', { name: 'Terminal' });
+  await terminal.getByRole('button', { name: 'ipconfig' }).click();
+  await terminal.getByRole('button', { name: 'Computer' }).click();
+  await terminal.getByRole('button', { name: /Run/ }).click();
+  await expect(terminal.getByText(/Computer> ipconfig/)).toBeVisible();
+  await expect(terminal.getByText(/Address/)).toBeVisible();
+});

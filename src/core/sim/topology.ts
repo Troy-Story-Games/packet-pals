@@ -1,4 +1,4 @@
-import { DEVICE_SPECS, isServer, WIFI_RANGE } from './devices';
+import { CELL_RANGE, DEVICE_SPECS, isServer, WIFI_RANGE } from './devices';
 import type { Address, Device, Edge, Network, WifiStatus } from './types';
 
 /**
@@ -13,6 +13,9 @@ export class Topology {
   private readonly wifi = new Map<string, WifiStatus>();
   private readonly wanNeighbours = new Map<string, Set<string>>();
   private readonly addresses = new Map<string, Address>();
+  private readonly cell = new Map<string, CellStatus>();
+  /** Router id → its public "front door" address on the Internet. */
+  private readonly frontDoors = new Map<string, string>();
   /** Router id → its LAN subnet prefix, e.g. "192.168.1". */
   readonly subnets = new Map<string, string>();
 
@@ -46,6 +49,20 @@ export class Topology {
 
   address(id: string): Address {
     return this.addresses.get(id) ?? { ip: null, source: 'none' };
+  }
+
+  cellStatus(id: string): CellStatus {
+    return this.cell.get(id) ?? { state: 'none' };
+  }
+
+  /** A home router's address as seen from the Internet, if it is online. */
+  frontDoor(routerId: string): string | undefined {
+    return this.frontDoors.get(routerId);
+  }
+
+  /** Is this device on the mobile network rather than WiFi? */
+  onCell(id: string): boolean {
+    return this.cellStatus(id).state === 'connected';
   }
 
   isWanNeighbour(routerId: string, neighbourId: string): boolean {
@@ -82,6 +99,13 @@ export class Topology {
     }
 
     for (const d of this.network.devices) {
+      if (d.network === 'cell' && DEVICE_SPECS[d.kind].canCell) {
+        const status = this.joinCell(d);
+        this.cell.set(d.id, status);
+        if (status.state === 'connected' && status.towerId)
+          this.addEdge({ a: d.id, b: status.towerId, via: 'cell' });
+        continue;
+      }
       if (!d.wifi || !DEVICE_SPECS[d.kind].canWifi) continue;
       const status = this.joinWifi(d);
       this.wifi.set(d.id, status);
@@ -102,6 +126,17 @@ export class Topology {
     return match
       ? { state: 'connected', routerId: match.id }
       : { state: 'wrongPassword', routerId: inRange[0].id };
+  }
+
+  private joinCell(d: Device): CellStatus {
+    if (!d.powered) return { state: 'none' };
+    const towers = this.network.devices
+      .filter((t) => t.kind === 'cellTower' && t.powered)
+      .sort((a, b) => distance(a, d) - distance(b, d));
+    if (towers.length === 0) return { state: 'noTower' };
+    return distance(towers[0], d) <= CELL_RANGE
+      ? { state: 'connected', towerId: towers[0].id }
+      : { state: 'outOfRange', towerId: towers[0].id };
   }
 
   /** A router port is WAN if the Internet can be reached from it through hubs, switches and firewalls. */
@@ -191,12 +226,16 @@ export class Topology {
     const internet = this.internetId();
     let publicHost = 10;
 
+    let frontDoor = 1;
     for (const r of routers) {
       this.addresses.set(
         r.id,
         r.powered ? { ip: `${this.subnets.get(r.id)}.1`, source: 'static' } : { ip: null, source: 'none' },
       );
+      if (r.powered && (this.wanNeighbours.get(r.id)?.size ?? 0) > 0)
+        this.frontDoors.set(r.id, `198.51.100.${frontDoor++}`);
     }
+    let carrier = 10;
 
     const leaseCounters = new Map<string, number>();
     for (const d of this.network.devices) {
@@ -207,12 +246,12 @@ export class Topology {
         continue;
       }
 
-      if (isServer(d.kind)) {
-        const online = internet !== undefined && this.localPathToInternet(d.id) !== null;
-        this.addresses.set(
-          d.id,
-          online ? { ip: `203.0.113.${publicHost++}`, source: 'public' } : { ip: null, source: 'none' },
-        );
+      if (this.onCell(d.id)) {
+        this.addresses.set(d.id, {
+          ip: `100.64.0.${carrier++}`,
+          source: 'carrier',
+          gatewayId: this.cellStatus(d.id).towerId,
+        });
         continue;
       }
 
@@ -220,6 +259,16 @@ export class Topology {
         const r = this.device(id);
         return r.kind === 'router' && r.powered;
       });
+
+      // Servers plugged straight into the Internet get a public address; at home they're like any device.
+      if (isServer(d.kind) && gateways.length === 0) {
+        const online = internet !== undefined && this.localPathToInternet(d.id) !== null;
+        this.addresses.set(
+          d.id,
+          online ? { ip: `203.0.113.${publicHost++}`, source: 'public' } : { ip: null, source: 'none' },
+        );
+        continue;
+      }
 
       if (d.staticIp) {
         const gw = gateways.find((g) => d.staticIp!.startsWith(`${this.subnets.get(g)}.`));
@@ -270,6 +319,11 @@ export class Topology {
   edgeBetween(a: string, b: string): Edge | undefined {
     return this.neighbours(a).find((e) => this.other(e, a) === b);
   }
+}
+
+export interface CellStatus {
+  state: 'none' | 'connected' | 'outOfRange' | 'noTower';
+  towerId?: string;
 }
 
 export function distance(a: { x: number; y: number }, b: { x: number; y: number }): number {

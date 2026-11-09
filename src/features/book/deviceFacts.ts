@@ -54,4 +54,40 @@ export const DEVICE_FACTS: Record<DeviceKind, { what: string; fact: string }> = 
     what: 'A computer far away that sends you websites.',
     fact: 'Web servers never sleep. They answer requests day and night!',
   },
+  dnsServer: {
+    what: 'The phone book of the Internet. It turns names like videos.fun into addresses.',
+    fact: 'Your device asks a DNS server for help almost every time you open a website!',
+  },
+  phone: {
+    what: 'A pocket computer. It can use WiFi at home, or mobile data from a cell tower anywhere.',
+    fact: 'The first mobile phone call was made in 1973, on a phone as heavy as a big bag of sugar!',
+  },
+  cellTower: {
+    what: 'A tall tower with radios on top. It gives phones mobile data across a whole neighbourhood.',
+    fact: 'Some cell towers are disguised as trees so they blend in!',
+  },
+  smartSpeaker: {
+    what: 'A speaker that listens for its name and answers questions using the Internet.',
+    fact: 'It sends your question to a server far away, which works out the answer.',
+  },
+  smartTv: {
+    what: 'A TV that can play videos straight from the Internet.',
+    fact: 'Streaming one movie can take as many packets as there are stars you can see at night!',
+  },
+  doorbell: {
+    what: 'A doorbell with a camera. You can see who is at the door on your phone.',
+    fact: 'It sends a little video to your phone, even when you are far away.',
+  },
+  camera: {
+    what: 'A camera that watches over a room or garden and streams the picture over the network.',
+    fact: "Security cameras can see in the dark using light that people can't see, called infrared.",
+  },
+  smartLight: {
+    what: 'A light bulb you can switch on, off or change colour from a phone.',
+    fact: 'Some smart lights can show 16 million different colours!',
+  },
+  thermostat: {
+    what: 'Keeps your home warm or cool, and can be changed from your phone.',
+    fact: 'Some thermostats learn when you are home and set the temperature all by themselves.',
+  },
 };

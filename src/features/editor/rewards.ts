@@ -44,5 +44,6 @@ export function rewardJourney(journey: Journey, kindsOnPath: DeviceKind[], hubSh
   p.bumpStat('packetsDelivered');
   if (kindsOnPath.includes('internet')) p.bumpStat('internetTrips');
   if (journey.action === 'game') p.bumpStat('gamesPlayed');
+  if (journey.action === 'print') p.bumpStat('printsDone');
   if (capped('packet')) p.addXp(kindsOnPath.includes('internet') ? 5 : 3, 'Packet delivered!');
 }

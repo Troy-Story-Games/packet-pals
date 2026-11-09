@@ -2,7 +2,7 @@ import { Handle, Position, type Node, type NodeProps } from '@xyflow/react';
 import { AnimatePresence, motion } from 'motion/react';
 import { DeviceArt } from '@/components/devices/DeviceArt';
 import { Emoji } from '@/components/Emoji';
-import { WIFI_RANGE, type Device } from '@/core/sim';
+import type { Device } from '@/core/sim';
 import { ACTION_INFO, ART_CENTER_Y, NODE_WIDTH } from '../actions';
 import { useEditor } from '../editorStore';
 import styles from './DeviceNode.module.css';
@@ -12,13 +12,13 @@ export type DeviceNodeData = {
   ip: string | null;
   /** Twemoji code for the device's mood face. */
   face: string;
-  /** Show the WiFi range ring (routers with WiFi on). */
-  wifiRange: boolean;
+  /** Signal ring: WiFi for routers, mobile data for cell towers. `color` is "r g b". */
+  range: { radius: number; color: string } | null;
 };
 export type DeviceNodeType = Node<DeviceNodeData, 'device'>;
 
 export function DeviceNode({ id, data }: NodeProps<DeviceNodeType>) {
-  const { device, ip, face, wifiRange } = data;
+  const { device, ip, face, range } = data;
   const selected = useEditor((s) => s.selectedId === id);
   const cableStart = useEditor((s) => s.cableFrom === id);
   const tool = useEditor((s) => s.tool);
@@ -36,15 +36,18 @@ export function DeviceNode({ id, data }: NodeProps<DeviceNodeType>) {
 
   return (
     <div className={classes} style={{ width: NODE_WIDTH }}>
-      {wifiRange && (
+      {range && (
         <div
           className={styles.wifiRange}
-          style={{
-            width: WIFI_RANGE * 2,
-            height: WIFI_RANGE * 2,
-            left: NODE_WIDTH / 2 - WIFI_RANGE,
-            top: ART_CENTER_Y - WIFI_RANGE,
-          }}
+          style={
+            {
+              width: range.radius * 2,
+              height: range.radius * 2,
+              left: NODE_WIDTH / 2 - range.radius,
+              top: ART_CENTER_Y - range.radius,
+              '--ring': range.color,
+            } as React.CSSProperties
+          }
         >
           <span />
           <span />

@@ -9,7 +9,8 @@ const ROUTER_OFF = { wifiOn: false, ssid: '', password: '', dhcp: true };
 const TREEHOUSE = { wifiOn: true, ssid: 'Treehouse', password: 'pizza123', dhcp: true };
 
 /** The story mode, in order. Each mission teaches one networking idea. */
-export const MISSIONS: Mission[] = [
+/** Chapter 1: Network Basics. */
+const CHAPTER_1: Array<Omit<Mission, 'chapter'>> = [
   {
     id: 'hello-cable',
     title: 'Hello, Cable!',
@@ -328,6 +329,232 @@ export const MISSIONS: Mission[] = [
     timeLimit: 180,
   },
 ];
+
+const CASTLE = { wifiOn: true, ssid: 'Castle', password: 'dragon42', dhcp: true };
+const BLUE_HOUSE = { walls: '#bfdbfe', roof: '#1d4ed8', floors: '#eff6ff', trim: '#1e3a8a' };
+
+/** Two houses on the Internet; your firewall guards your front door. */
+function twoHouses(
+  you: [kind: 'computer' | 'console', id: string, name: string],
+  friend: [kind: 'laptop' | 'console', id: string, name: string],
+) {
+  return new MissionNet()
+    .building('house1', -80, 120, 'Your house')
+    .building('house1', 1000, 120, "Friend's house", BLUE_HOUSE)
+    .add(you[0], you[1], 60, 430, { name: you[2] })
+    .add('router', 'r1', 160, 300, { router: { ...TREEHOUSE } })
+    .add('firewall', 'wall', 380, 180, { name: 'Your Firewall' })
+    .add('internet', 'internet', 680, 20)
+    .add('router', 'r2', 1260, 300, { name: "Friend's Router", router: { ...CASTLE } })
+    .add(friend[0], friend[1], 1160, 450, { name: friend[2], wifi: { ssid: 'Castle', password: 'dragon42' } })
+    .link(you[1], 'r1')
+    .link('r1', 'wall')
+    .link('wall', 'internet')
+    .link('r2', 'internet');
+}
+
+/** Chapter 2: Network Pro. Each mission unlocks an advanced feature. */
+const CHAPTER_2: Mission[] = [
+  {
+    id: 'phone-home',
+    title: 'Phone Home',
+    emoji: '1f4f1',
+    chapter: 2,
+    minLevel: 6,
+    features: ['cell'],
+    story:
+      "This phone is at the park, far away from home. The home WiFi can't reach it. But phones have a secret power: mobile data from cell towers!",
+    goal: 'Switch the phone to Mobile data, then watch a video on it.',
+    hints: ['Tap the phone and choose Mobile data.', 'Now press "Video" on the phone.'],
+    tools: [],
+    setup: () =>
+      new MissionNet()
+        .building('house1', -60, 120, 'Home')
+        .add('router', 'router', 120, 300, { router: { ...TREEHOUSE } })
+        .add('internet', 'internet', 700, 40)
+        .add('videoServer', 'videos', 1000, -60)
+        .add('cellTower', 'tower', 1150, 260)
+        .add('phone', 'phone', 1240, 470, {
+          name: 'Phone',
+          network: 'wifi',
+          wifi: { ssid: 'Treehouse', password: 'pizza123' },
+        })
+        .link('router', 'internet')
+        .link('videos', 'internet')
+        .link('tower', 'internet')
+        .build(),
+    check: ({ history }) =>
+      delivered(
+        history,
+        (j) => j.from === 'phone' && j.action === 'video' && j.steps[0]?.moves[0]?.via === 'cell',
+      ),
+    lesson:
+      'Cell towers are giant radios on tall poles. They reach much further than WiFi, so phones can get online almost anywhere!',
+  },
+  {
+    id: 'phone-book',
+    title: "The Internet's Phone Book",
+    emoji: '1f4d6',
+    chapter: 2,
+    minLevel: 6,
+    features: ['cell', 'dnsServer'],
+    story:
+      "Uh-oh, websites stopped working! Every website has a name, and a DNS server is the Internet's phone book. It turns names into addresses.",
+    goal: "Open kidsweb.fun on the laptop. If it doesn't work, find out why and fix it!",
+    hints: [
+      'Press "Website" on the laptop and read what goes wrong.',
+      'The DNS Server is asleep. Tap it and switch it on!',
+    ],
+    tools: [],
+    setup: () =>
+      new MissionNet()
+        .add('router', 'router', 120, 300, { router: { ...TREEHOUSE } })
+        .add('laptop', 'laptop', 300, 480, {
+          name: 'Laptop',
+          wifi: { ssid: 'Treehouse', password: 'pizza123' },
+        })
+        .add('internet', 'internet', 600, 120)
+        .add('webServer', 'web', 900, 0)
+        .add('dnsServer', 'dns', 900, 300, { powered: false })
+        .link('router', 'internet')
+        .link('web', 'internet')
+        .link('dns', 'internet')
+        .build(),
+    check: ({ history }) =>
+      delivered(
+        history,
+        (j) => j.from === 'laptop' && j.action === 'web' && j.steps.some((s) => s.packet === 'lookup'),
+      ),
+    lesson:
+      'DNS turns names like kidsweb.fun into addresses like 203.0.113.10. Without it, you would have to remember lots of numbers!',
+  },
+  {
+    id: 'network-detective',
+    title: 'Network Detective',
+    emoji: '1f50d',
+    chapter: 2,
+    minLevel: 7,
+    features: ['cell', 'dnsServer', 'terminal'],
+    story:
+      "Something is broken between this computer and the Internet. But where? Network detectives use the Terminal and a tool called traceroute to follow a packet's trail!",
+    goal: 'Open the Terminal and run traceroute from the Computer to videos.fun. Find where it gets stuck, fix it, then ping videos.fun.',
+    hints: [
+      'Tap the Terminal button, pick traceroute, the Computer, and videos.fun. Then press Run!',
+      'It gets stuck after the router. Look at the device after it. Is it asleep?',
+    ],
+    tools: [],
+    setup: () =>
+      new MissionNet()
+        .add('computer', 'pc', 60, 420, { name: 'Computer' })
+        .add('switch', 'switch', 260, 420)
+        .add('router', 'router', 480, 300, { router: { ...TREEHOUSE } })
+        .add('firewall', 'wall', 700, 180, { powered: false })
+        .add('internet', 'internet', 920, 80)
+        .add('videoServer', 'videos', 1180, 0)
+        .link('pc', 'switch')
+        .link('switch', 'router')
+        .link('router', 'wall')
+        .link('wall', 'internet')
+        .link('videos', 'internet')
+        .build(),
+    check: ({ history }) =>
+      history.some((e) => e.command === 'traceroute') &&
+      history.some(
+        (e) => e.command === 'ping' && e.journey.outcome === 'delivered' && e.journey.from === 'pc',
+      ),
+    lesson:
+      'Traceroute lists every stop a packet makes. Where the list stops, that is where to look for the problem!',
+  },
+  {
+    id: 'my-website',
+    title: 'My Own Website',
+    emoji: '1f3e1',
+    chapter: 2,
+    minLevel: 7,
+    features: ['cell', 'dnsServer', 'terminal', 'dnsNames'],
+    story:
+      "You built your very own website, and it lives on a server at home! But nobody can find it without a name. Let's add it to your home's phone book.",
+    goal: 'Tap Home DNS and add the name "mysite.home" for My Website. Then open mysite.home on the laptop!',
+    hints: [
+      'Tap Home DNS, open Advanced, type mysite.home, pick My Website and press Add.',
+      'Tap the laptop, press "Website" and pick mysite.home.',
+    ],
+    tools: [],
+    setup: () =>
+      new MissionNet()
+        .building('house2', -80, 80, 'Home')
+        .add('router', 'router', 200, 280, { router: { ...TREEHOUSE } })
+        .add('switch', 'switch', 420, 440)
+        .add('laptop', 'laptop', 60, 520, {
+          name: 'Laptop',
+          wifi: { ssid: 'Treehouse', password: 'pizza123' },
+        })
+        .add('webServer', 'mysite', 640, 520, { name: 'My Website' })
+        .add('dnsServer', 'homedns', 640, 320, { name: 'Home DNS' })
+        .add('internet', 'internet', 860, 60)
+        .add('webServer', 'web', 1120, -20)
+        .link('switch', 'router')
+        .link('mysite', 'switch')
+        .link('homedns', 'switch')
+        .link('router', 'internet')
+        .link('web', 'internet')
+        .build(),
+    check: ({ history }) =>
+      delivered(
+        history,
+        (j) => j.from === 'laptop' && j.action === 'web' && j.to === 'mysite' && Boolean(j.name),
+      ),
+    lesson:
+      "Your home DNS server knows your own names, and asks the Internet's phone book for everything else.",
+  },
+  {
+    id: 'door-numbers',
+    title: 'Door Numbers',
+    emoji: '1f6aa',
+    chapter: 2,
+    minLevel: 8,
+    features: ['cell', 'dnsServer', 'terminal', 'dnsNames', 'doors'],
+    story:
+      'Your friend wants to send you a message from their house. But your firewall guards your front door and keeps strangers out!',
+    goal: "Send a message from Friend's Laptop to Your PC. When it's blocked, open the Chat door on your Firewall for Your PC, then try again!",
+    hints: [
+      'Tap Friend\'s Laptop, press "Message" and pick Your PC. Watch where it stops.',
+      'Tap your Firewall, open Advanced, and open the Chat door for Your PC.',
+    ],
+    tools: [],
+    setup: () => twoHouses(['computer', 'pc', 'Your PC'], ['laptop', 'friend', "Friend's Laptop"]).build(),
+    check: ({ history }) =>
+      delivered(history, (j) => j.from === 'friend' && j.to === 'pc' && j.action === 'message'),
+    lesson:
+      'Every app knocks on a different numbered door, called a port. A firewall only opens the doors you choose, so your home stays safe.',
+  },
+  {
+    id: 'game-night',
+    title: 'Game Night',
+    emoji: '1f3ae',
+    chapter: 2,
+    minLevel: 8,
+    features: ['cell', 'dnsServer', 'terminal', 'dnsNames', 'doors', 'hostGames'],
+    story:
+      'Game night! You are hosting the game on your console, and your friend wants to join from their house.',
+    goal: "Open the Games door on your Firewall for Your Console. Then have your friend's console join your game.",
+    hints: [
+      'Tap your Firewall, open Advanced, and open the Games door for Your Console.',
+      'Tap Friend\'s Console, press "Game" and pick Your Console.',
+    ],
+    tools: [],
+    setup: () =>
+      twoHouses(
+        ['console', 'myconsole', 'Your Console'],
+        ['console', 'friendconsole', "Friend's Console"],
+      ).build(),
+    check: ({ history }) =>
+      delivered(history, (j) => j.from === 'friendconsole' && j.to === 'myconsole' && j.action === 'game'),
+    lesson: 'When you host a game, friends knock on door 3074. Only open doors for games you trust!',
+  },
+];
+
+export const MISSIONS: Mission[] = [...CHAPTER_1.map((m) => ({ ...m, chapter: 1 as const })), ...CHAPTER_2];
 
 export function missionById(id: string): Mission | undefined {
   return MISSIONS.find((m) => m.id === id);
